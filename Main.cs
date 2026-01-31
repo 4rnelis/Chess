@@ -1,6 +1,14 @@
-﻿using Chess.Logic;
+﻿using Chess.Infrastructure;
+using Chess.Logic;
 
 Console.WriteLine("Hello, World!");
 
-var board = Logic.ImportFEN(Logic.GetFENJsonFile("./resources/layouts.json", "1"));
-Logic.PrintBoard(board);
+var layout = Logic.ImportFEN(Logic.GetFENJsonFile("./resources/layouts.json", "1"));
+Board board = new Board(layout);
+Logic.PrintBoard(board.Layout);
+
+var moves = board.GetValidMoves(8);
+foreach (var m in moves)
+{
+    Console.WriteLine($"{m.Source} {m.Target} {m.Flags}");
+}

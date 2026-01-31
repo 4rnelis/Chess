@@ -117,6 +117,7 @@ public static class Logic
             }
             Console.Write($"{board[i].PC}_{board[i].PT}, ");
         }
+        Console.WriteLine();
     }
 }
 
