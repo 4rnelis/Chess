@@ -115,7 +115,7 @@ public static class Logic
             {
                 Console.WriteLine();
             }
-            Console.Write($"{board[i].PC}_{board[i].PT}, ");
+            Console.Write($"{board[i].PC,5}_{board[i].PT,6}, ");
         }
         Console.WriteLine();
     }
