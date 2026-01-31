@@ -155,45 +155,7 @@ public sealed class Board
     /// <returns>A list of all valid moves</returns>
     public List<Move> GetValidMovesBishop(int position, PIECE_COLOR color)
     {
-        List<Move> moves = [];
-        // Source file
-        int sf = position & 7;
-        // Source rank
-        int sr = position >> 3;
-        int f, r, tp;
-        Piece target;
-
-        // Mark directions
-        int[] df = [+1, +1, -1, -1];
-        int[] dr = [+1, -1, +1, -1];
-
-        // Iterate over each direction
-        for (int dir = 0; dir < 4; dir++)
-        {
-            // file/rank = source f/r + a move in a direction
-            f = sf + df[dir];
-            r = sr + dr[dir];
-
-            while ((uint)f < 8 && (uint)r < 8)
-            {
-                tp = r*8+f;
-                target = Layout[tp];
-                if (target.PC != PIECE_COLOR.NONE)
-                {
-                    if (target.PC == GetOppositeColor(color))
-                    {
-                        moves.Add(new Move(position, tp, MOVE_FLAGS.Capture));
-                    }
-                    break;
-                } else {
-                    moves.Add(new Move(position, tp, MOVE_FLAGS.None));
-                }
-
-                f += df[dir];
-                r += dr[dir];
-            } 
-        }
-        return moves;
+        return SlidingMovesGeneralized(position, color, [+1, -1, +1, -1], [+1, +1, -1, -1]);
     }
 
     /// <summary>
@@ -204,6 +166,49 @@ public sealed class Board
     /// <returns>A list of all valid moves</returns>
     public List<Move> GetValidMovesRook(int position, PIECE_COLOR color)
     {
+        return SlidingMovesGeneralized(position, color, [+1, -1, 0, 0], [0, 0, +1, -1]);
+    }
+
+    public List<Move> GetValidMovesKnight(int position, PIECE_COLOR color)
+    {
+        return StaticMovesGeneralized(position, color, [+1, -1, +1, -1, +2, +2, -2, -2], [+2, +2, -2, -2, +1, -1, +1, -1]);
+    }
+
+    /// <summary>
+    /// King move logic implementation
+    /// </summary>
+    /// <param name="position"></param>
+    /// <param name="color"></param>
+    /// <returns></returns>
+    public List<Move> GetValidMovesKing(int position, PIECE_COLOR color)
+    {
+        return StaticMovesGeneralized(position, color, [-1, -1, -1, 0, 0, +1, +1, +1], [-1, 0, +1, -1, +1, -1, 0, +1]);
+    }
+
+    /// <summary>
+    /// Queen move logic implementation. Alternatively: Rook + Bishop movement.
+    /// </summary>
+    /// <param name="position"></param>
+    /// <param name="color"></param>
+    /// <returns></returns> <summary>
+    public List<Move> GetValidMovesQueen(int position, PIECE_COLOR color)
+    {
+        return SlidingMovesGeneralized(position, color, [+1, -1, +1, -1, +1, -1, 0, 0], [+1, +1, -1, -1, 0, 0, +1, -1]);
+    }
+
+
+    /// <summary>
+    /// Helper method to reuse in the sliding movement type pieces.
+    /// </summary>
+    /// <param name="position"></param>
+    /// <param name="color"></param>
+    /// <param name="df">Direction of file: +1=right, -1=left, 0=stay</param>
+    /// <param name="dr">Direction of rank: +1=down, -1=up, 0=stay</param>
+    /// <returns></returns>
+    public List<Move> SlidingMovesGeneralized(int position, PIECE_COLOR color, int[] df, int[] dr)
+    {
+        int length = df.Length;
+
         List<Move> moves = [];
         // Source file
         int sf = position & 7;
@@ -212,12 +217,8 @@ public sealed class Board
         int f, r, tp;
         Piece target;
 
-        // Mark directions
-        int[] df = [+1, -1, 0, 0];
-        int[] dr = [0, 0, +1, -1];
-
         // Iterate over each direction
-        for (int dir = 0; dir < 4; dir++)
+        for (int dir = 0; dir < length; dir++)
         {
             // file/rank = source f/r + a move in a direction
             f = sf + df[dir];
@@ -244,25 +245,45 @@ public sealed class Board
         }
         return moves;
     }
-    public List<Move> GetValidMovesKnight(int position, PIECE_COLOR color)
-    {
-        return [];
-    }
-    public List<Move> GetValidMovesKing(int position, PIECE_COLOR color)
-    {
-        return [];
-    }
+
     /// <summary>
-    /// 
+    /// Helper method to reuse in the static movement type pieces.
     /// </summary>
     /// <param name="position"></param>
     /// <param name="color"></param>
-    /// <returns></returns> <summary>
-    public List<Move> GetValidMovesQueen(int position, PIECE_COLOR color)
+    /// <param name="mf">moves in file</param>
+    /// <param name="mr">moves in rank</param>
+    /// <returns></returns>
+    public List<Move> StaticMovesGeneralized(int position, PIECE_COLOR color, int[] mf, int[] mr)
     {
+        int length = mf.Length;
+
         List<Move> moves = [];
-        moves.AddRange(GetValidMovesBishop(position, color));
-        moves.AddRange(GetValidMovesRook(position, color));
+        // Source file
+        int sf = position & 7;
+        // Source rank
+        int sr = position >> 3;
+        int f, r, tp;
+        Piece target;
+
+        for (int mv = 0; mv < length; mv++)
+        {
+            f = sf + mf[mv];
+            r = sr + mr[mv];
+            tp = r*8+f;
+            target = Layout[tp];
+
+            if ((uint)f < 8 && (uint)r < 8) {
+                if (target.PC != color)
+                {
+                    if (target.PC == GetOppositeColor(color)) {
+                        moves.Add(new Move(position, tp, MOVE_FLAGS.Capture));
+                    } else {
+                        moves.Add(new Move(position, tp, MOVE_FLAGS.None));
+                    }
+                } 
+            }
+        }
         return moves;
     }
 
