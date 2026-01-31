@@ -297,7 +297,7 @@ public static class MovesGenerator
                 {
                     // Checks if the path is empty and not under direct threat
                     if ((board.Layout[1].PT == PIECE_TYPE.NONE) && (board.Layout[2].PT == PIECE_TYPE.NONE) && (board.Layout[3].PT == PIECE_TYPE.NONE) &&
-                        !(ThreatenedChecker.IsThreatened(board, 1, PIECE_COLOR.BLACK) && ThreatenedChecker.IsThreatened(board, 2, PIECE_COLOR.BLACK) && ThreatenedChecker.IsThreatened(board, 3, PIECE_COLOR.BLACK)))
+                        !(ThreatenedChecker.IsThreatened(board, 4, PIECE_COLOR.BLACK) && ThreatenedChecker.IsThreatened(board, 1, PIECE_COLOR.BLACK) && ThreatenedChecker.IsThreatened(board, 2, PIECE_COLOR.BLACK) && ThreatenedChecker.IsThreatened(board, 3, PIECE_COLOR.BLACK)))
                     {
                         // Assigns the move either to the king or to the rook
                         if (pt == PIECE_TYPE.KING)
@@ -313,7 +313,7 @@ public static class MovesGenerator
                 if ((board.CastlingRights & Castling.BlackKingSide) != 0)
                 {
                     if ((board.Layout[5].PT == PIECE_TYPE.NONE) && (board.Layout[6].PT == PIECE_TYPE.NONE) &&
-                        !(ThreatenedChecker.IsThreatened(board, 5, PIECE_COLOR.BLACK) && ThreatenedChecker.IsThreatened(board, 6, PIECE_COLOR.BLACK)))
+                        !(ThreatenedChecker.IsThreatened(board, 4, PIECE_COLOR.BLACK) && ThreatenedChecker.IsThreatened(board, 5, PIECE_COLOR.BLACK) && ThreatenedChecker.IsThreatened(board, 6, PIECE_COLOR.BLACK)))
                     {
                         if (pt == PIECE_TYPE.KING)
                         {
@@ -330,7 +330,7 @@ public static class MovesGenerator
                 if ((board.CastlingRights & Castling.WhiteQueenSide) != 0)
                 {
                     if ((board.Layout[57].PT == PIECE_TYPE.NONE) && (board.Layout[58].PT == PIECE_TYPE.NONE) && (board.Layout[59].PT == PIECE_TYPE.NONE) &&
-                        !(ThreatenedChecker.IsThreatened(board, 57, PIECE_COLOR.WHITE) && ThreatenedChecker.IsThreatened(board, 58, PIECE_COLOR.WHITE) && ThreatenedChecker.IsThreatened(board, 59, PIECE_COLOR.WHITE)))
+                        !(ThreatenedChecker.IsThreatened(board, 60, PIECE_COLOR.WHITE) && ThreatenedChecker.IsThreatened(board, 57, PIECE_COLOR.WHITE) && ThreatenedChecker.IsThreatened(board, 58, PIECE_COLOR.WHITE) && ThreatenedChecker.IsThreatened(board, 59, PIECE_COLOR.WHITE)))
                     {
                         if (pt == PIECE_TYPE.KING)
                         {
@@ -345,7 +345,7 @@ public static class MovesGenerator
                 if ((board.CastlingRights & Castling.WhiteKingSide) != 0)
                 {
                     if ((board.Layout[61].PT == PIECE_TYPE.NONE) && (board.Layout[62].PT == PIECE_TYPE.NONE) &&
-                        !(ThreatenedChecker.IsThreatened(board, 61, PIECE_COLOR.WHITE) && ThreatenedChecker.IsThreatened(board, 62, PIECE_COLOR.WHITE)))
+                        !(ThreatenedChecker.IsThreatened(board, 60, PIECE_COLOR.WHITE) && ThreatenedChecker.IsThreatened(board, 61, PIECE_COLOR.WHITE) && ThreatenedChecker.IsThreatened(board, 62, PIECE_COLOR.WHITE)))
                     {
                         if (pt == PIECE_TYPE.KING)
                         {
