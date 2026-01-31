@@ -1,0 +1,1 @@
+Generally, when making a move: Request(FEN) -> Parse to int -> CheckValidMoves in Board -> yes, update and return; no, game state remains unchanged.

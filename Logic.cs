@@ -10,63 +10,63 @@ using System.Security;
 public static class Logic
 {
     /// <summary>
-    /// Converts FEN format to a 2D array of Piece, that is used in internal game logic.
+    /// Converts FEN format to an array of Piece, that is used in internal game logic.
     /// </summary>
     /// <param name="FEN">FEN as a String</param>
-    /// <returns>A filled Piece[,] array</returns>
-    public static Piece[,] ImportFEN(String FEN) 
+    /// <returns>A filled Piece[] array</returns>
+    public static Piece[] ImportFEN(String FEN) 
     {
-        Piece[,] parsed = new Piece[8,8];
+        Piece[] parsed = new Piece[64];
         int i = 0;
         while (i < 64) {
             foreach (char e in FEN) {
                 switch (e) {
                     case 'r':
-                        parsed[i/8,i%8] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.ROOK);
+                        parsed[i] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.ROOK);
                         i++;
                         break;
                     case 'n':
-                        parsed[i/8,i%8] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.KNIGHT);
+                        parsed[i] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.KNIGHT);
                         i++;
                         break;
                     case 'b':
-                        parsed[i/8,i%8] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.BISHOP);
+                        parsed[i] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.BISHOP);
                         i++;
                         break;
                     case 'q':
-                        parsed[i/8,i%8] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.QUEEN);
+                        parsed[i] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.QUEEN);
                         i++;
                         break;
                     case 'k':
-                        parsed[i/8,i%8] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.KING);
+                        parsed[i] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.KING);
                         i++;
                         break;
                     case 'p':
-                        parsed[i/8,i%8] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.PAWN);
+                        parsed[i] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.PAWN);
                         i++;
                         break;
                     case 'R':
-                        parsed[i/8,i%8] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.ROOK);
+                        parsed[i] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.ROOK);
                         i++;
                         break;
                     case 'N':
-                        parsed[i/8,i%8] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.KNIGHT);
+                        parsed[i] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.KNIGHT);
                         i++;
                         break;
                     case 'B':
-                        parsed[i/8,i%8] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.BISHOP);
+                        parsed[i] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.BISHOP);
                         i++;
                         break;
                     case 'Q':
-                        parsed[i/8,i%8] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.QUEEN);
+                        parsed[i] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.QUEEN);
                         i++;
                         break;
                     case 'K':
-                        parsed[i/8,i%8] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.KING);
+                        parsed[i] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.KING);
                         i++;
                         break;
                     case 'P':
-                        parsed[i/8,i%8] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.PAWN);
+                        parsed[i] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.PAWN);
                         i++;
                         break;
                     case '/':
@@ -74,7 +74,7 @@ public static class Logic
                     default:
                         for (int k = 0; k < e-'0'; k++)
                         {
-                            parsed[i/8,i%8] = new Piece(pc: PIECE_COLOR.NONE, pt: PIECE_TYPE.NONE);
+                            parsed[i] = new Piece(pc: PIECE_COLOR.NONE, pt: PIECE_TYPE.NONE);
                             i++;
                         }
                         break;
@@ -106,16 +106,16 @@ public static class Logic
     /// <summary>
     /// Prints the disposition of pieces on the board.
     /// </summary>
-    /// <param name="board">The 2D array of pieces</param>
-    public static void PrintBoard(Piece[,] board)
+    /// <param name="board">The array of pieces</param>
+    public static void PrintBoard(Piece[] board)
     {
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 64; i++)
         {
-            for (int j = 0; j < 8; j++)
+            if ((i & 7) == 0)
             {
-                Console.Write($"{board[i,j].PT} {board[i,j].PC}, ");
+                Console.WriteLine();
             }
-            Console.WriteLine();
+            Console.Write($"{board[i].PC}_{board[i].PT}, ");
         }
     }
 }
