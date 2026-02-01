@@ -1,7 +1,6 @@
-using System.Data.Common;
-using System.Runtime.CompilerServices;
-using Chess.Infrastructure;
-using Microsoft.VisualBasic;
+using Chess.Structures;
+
+namespace Chess.Logic;
 
 /// <summary>
 /// This class is used to contain a method of checking whether a specific square is under direct threat
@@ -9,7 +8,8 @@ using Microsoft.VisualBasic;
 public static class ThreatenedChecker
 {
     /// <summary>
-    /// Checks if the squate is under direct threat
+    /// Checks if the square is under direct threat. Another way would be to generate every possible move and then check for squares, 
+    /// but that is inefficient and computationally expensive.
     /// </summary>
     /// <param name="board"></param>
     /// <param name="position"></param>
@@ -17,6 +17,7 @@ public static class ThreatenedChecker
     /// <returns>true/false</returns>
     public static bool IsThreatened(Board board, int position, PIECE_COLOR color)
     {
+        Console.WriteLine($"Checking if {position} is threatened");
         return IsPawnThreatened(board, position, color) || 
             IsOrthogonallyThreatened(board, position, color) || 
             IsDiagonallyThreatened(board, position, color) ||
@@ -168,7 +169,6 @@ public static class ThreatenedChecker
     }
     private static bool IsKnightThreatened(Board board, int position, PIECE_COLOR color) {
 
-        List<Move> moves = [];
         // Source file
         int sf = position & 7;
         // Source rank
@@ -199,7 +199,6 @@ public static class ThreatenedChecker
     } 
     private static bool IsKingThreatened(Board board, int position, PIECE_COLOR color) {
 
-        List<Move> moves = [];
         // Source file
         int sf = position & 7;
         // Source rank

@@ -1,6 +1,6 @@
-namespace Chess.Infrastructure;
+namespace Chess.Structures;
 
-public enum PIECE_COLOR {BLACK, WHITE, NONE};
+public enum PIECE_COLOR {BLACK = 0, WHITE = 1, NONE = 2};
 public enum PIECE_TYPE {PAWN, ROOK, BISHOP, KNIGHT, KING, QUEEN, NONE};
 
 /// <summary>

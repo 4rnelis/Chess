@@ -1,13 +1,9 @@
-using Chess.Infrastructure;
+using Chess.Structures;
 using System.Text.Json;
 
-namespace Chess.Logic;
+namespace Chess;
 
-using System.Runtime.Intrinsics.X86;
-using System.Security;
-
-
-public static class Logic
+public static class Format
 {
     /// <summary>
     /// Converts FEN format to an array of Piece, that is used in internal game logic.
