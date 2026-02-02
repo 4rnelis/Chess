@@ -11,11 +11,28 @@ public enum MOVE_FLAGS
     DoublePawnPush = 1 << 4
 }
 
-public class Move(int source, int target, MOVE_FLAGS flags)
+public class Move
 {
-    public int Source { get; } = source;
-    public int Target { get; } = target;
-    public MOVE_FLAGS Flags { get; } = flags;
+    public int Source { get; }
+    public int Target { get; }
+    public MOVE_FLAGS Flags { get; }
+    public PIECE_TYPE Promotion { get; }
+
+    public Move(int source, int target, MOVE_FLAGS flags)
+    {
+        Source = source;
+        Target = target;
+        Flags = flags;
+        Promotion = PIECE_TYPE.NONE;
+    }
+
+    public Move(int source, int target, MOVE_FLAGS flags, PIECE_TYPE promotion)
+    {
+        Source = source;
+        Target = target;
+        Flags = flags;
+        Promotion = promotion;
+    }
 
     public override string ToString()
     {

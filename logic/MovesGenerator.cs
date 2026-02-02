@@ -52,7 +52,10 @@ public static class MovesGenerator
                         // Check for promotion
                         if ((to >> 3) == 7)
                         {
-                            moves.Add(new Move(position, to, MOVE_FLAGS.Promotion));
+                            moves.Add(new Move(position, to,  MOVE_FLAGS.Promotion, PIECE_TYPE.QUEEN));
+                            moves.Add(new Move(position, to,  MOVE_FLAGS.Promotion, PIECE_TYPE.ROOK));
+                            moves.Add(new Move(position, to,  MOVE_FLAGS.Promotion, PIECE_TYPE.BISHOP));
+                            moves.Add(new Move(position, to,  MOVE_FLAGS.Promotion, PIECE_TYPE.KNIGHT));
                         } else {
                             moves.Add(new Move(position, to, MOVE_FLAGS.None));
                             // Check if double push possible
@@ -75,9 +78,13 @@ public static class MovesGenerator
                         if ((to >> 3) == 7)
                         {
                             flags |= MOVE_FLAGS.Promotion;
-                        } 
-
-                        moves.Add(new Move(position, to, flags));
+                            moves.Add(new Move(position, to, flags, PIECE_TYPE.QUEEN));
+                            moves.Add(new Move(position, to, flags, PIECE_TYPE.ROOK));
+                            moves.Add(new Move(position, to, flags, PIECE_TYPE.BISHOP));
+                            moves.Add(new Move(position, to, flags, PIECE_TYPE.KNIGHT));
+                        } else {
+                            moves.Add(new Move(position, to, flags));
+                        }
                     }
                     // Capture right
                     to = position+7;
@@ -91,9 +98,13 @@ public static class MovesGenerator
                         if ((to >> 3) == 7)
                         {
                             flags |= MOVE_FLAGS.Promotion;
-                        } 
-
-                        moves.Add(new Move(position, to, flags));
+                            moves.Add(new Move(position, to, flags, PIECE_TYPE.QUEEN));
+                            moves.Add(new Move(position, to, flags, PIECE_TYPE.ROOK));
+                            moves.Add(new Move(position, to, flags, PIECE_TYPE.BISHOP));
+                            moves.Add(new Move(position, to, flags, PIECE_TYPE.KNIGHT));
+                        } else {
+                            moves.Add(new Move(position, to, flags));
+                        }
                     }
 
                     return moves;
@@ -107,7 +118,10 @@ public static class MovesGenerator
                         // Check for promotion
                         if ((to >> 3) == 1)
                         {
-                            moves.Add(new Move(position, to, MOVE_FLAGS.Promotion));
+                            moves.Add(new Move(position, to,  MOVE_FLAGS.Promotion, PIECE_TYPE.QUEEN));
+                            moves.Add(new Move(position, to,  MOVE_FLAGS.Promotion, PIECE_TYPE.ROOK));
+                            moves.Add(new Move(position, to,  MOVE_FLAGS.Promotion, PIECE_TYPE.BISHOP));
+                            moves.Add(new Move(position, to,  MOVE_FLAGS.Promotion, PIECE_TYPE.KNIGHT));
                         } else {
                             moves.Add(new Move(position, to, MOVE_FLAGS.None));
                             // Check if double push possible
@@ -130,9 +144,13 @@ public static class MovesGenerator
                         if ((to >> 3) == 0)
                         {
                             flags |= MOVE_FLAGS.Promotion;
-                        } 
-
-                        moves.Add(new Move(position, to, flags));
+                            moves.Add(new Move(position, to, flags, PIECE_TYPE.QUEEN));
+                            moves.Add(new Move(position, to, flags, PIECE_TYPE.ROOK));
+                            moves.Add(new Move(position, to, flags, PIECE_TYPE.BISHOP));
+                            moves.Add(new Move(position, to, flags, PIECE_TYPE.KNIGHT));
+                        } else {
+                            moves.Add(new Move(position, to, flags));
+                        }
                     }
                     // Capture right
                     to = position-7;
@@ -146,9 +164,13 @@ public static class MovesGenerator
                         if ((to >> 3) == 0)
                         {
                             flags |= MOVE_FLAGS.Promotion;
-                        } 
-
-                        moves.Add(new Move(position, to, flags));
+                            moves.Add(new Move(position, to, flags, PIECE_TYPE.QUEEN));
+                            moves.Add(new Move(position, to, flags, PIECE_TYPE.ROOK));
+                            moves.Add(new Move(position, to, flags, PIECE_TYPE.BISHOP));
+                            moves.Add(new Move(position, to, flags, PIECE_TYPE.KNIGHT));
+                        } else {
+                            moves.Add(new Move(position, to, flags));
+                        }
                     }
                     return moves;
                 }
