@@ -1,4 +1,4 @@
-namespace Chess.Structures;
+namespace Chess.Engine.Structures;
 
 [Flags]
 public enum MOVE_FLAGS

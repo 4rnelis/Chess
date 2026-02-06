@@ -1,7 +1,7 @@
 using System.Buffers.Binary;
-using Chess.Structures;
+using Chess.Engine.Structures;
 
-namespace Chess.Logic;
+namespace Chess.Engine.Logic;
 
 public static class MovesGenerator
 {
@@ -116,7 +116,7 @@ public static class MovesGenerator
                     if ((uint)to < 64 && board.Layout[to].PT == PIECE_TYPE.NONE)
                     {
                         // Check for promotion
-                        if ((to >> 3) == 1)
+                        if ((to >> 3) == 0)
                         {
                             moves.Add(new Move(position, to,  MOVE_FLAGS.Promotion, PIECE_TYPE.QUEEN));
                             moves.Add(new Move(position, to,  MOVE_FLAGS.Promotion, PIECE_TYPE.ROOK));
@@ -371,11 +371,11 @@ public static class MovesGenerator
                         // Assigns the move either to the king or to the rook
                         if (pt == PIECE_TYPE.KING)
                         {
-                            moves.Add(new Move(4, 2, MOVE_FLAGS.Castling));
+                            moves.Add(new Move(4, 0, MOVE_FLAGS.Castling));
                         }
                         if (pt == PIECE_TYPE.ROOK)
                         {
-                            moves.Add(new Move(0, 3, MOVE_FLAGS.Castling));
+                            moves.Add(new Move(0, 4, MOVE_FLAGS.Castling));
                         }
                     }        
                 }
@@ -386,11 +386,11 @@ public static class MovesGenerator
                     {
                         if (pt == PIECE_TYPE.KING)
                         {
-                            moves.Add(new Move(4, 6, MOVE_FLAGS.Castling));
+                            moves.Add(new Move(4, 7, MOVE_FLAGS.Castling));
                         }
                         if (pt == PIECE_TYPE.ROOK)
                         {
-                            moves.Add(new Move(7, 5, MOVE_FLAGS.Castling));
+                            moves.Add(new Move(7, 4, MOVE_FLAGS.Castling));
                         }
                     }
                 }
@@ -403,11 +403,11 @@ public static class MovesGenerator
                     {
                         if (pt == PIECE_TYPE.KING)
                         {
-                            moves.Add(new Move(60, 58, MOVE_FLAGS.Castling));
+                            moves.Add(new Move(60, 56, MOVE_FLAGS.Castling));
                         }
                         if (pt == PIECE_TYPE.ROOK)
                         {
-                            moves.Add(new Move(56, 59, MOVE_FLAGS.Castling));
+                            moves.Add(new Move(56, 60, MOVE_FLAGS.Castling));
                         }
                     }
                 }
@@ -418,11 +418,11 @@ public static class MovesGenerator
                     {
                         if (pt == PIECE_TYPE.KING)
                         {
-                            moves.Add(new Move(60, 62, MOVE_FLAGS.Castling));
+                            moves.Add(new Move(60, 63, MOVE_FLAGS.Castling));
                         }
                         if (pt == PIECE_TYPE.ROOK)
                         {
-                            moves.Add(new Move(63, 61, MOVE_FLAGS.Castling));
+                            moves.Add(new Move(63, 60, MOVE_FLAGS.Castling));
                         }
                     }
                 }

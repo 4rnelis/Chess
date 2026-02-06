@@ -1,7 +1,8 @@
 using System.Diagnostics.Tracing;
-using Chess.Structures;
+using System.Security.Cryptography;
+using Chess.Engine.Structures;
 
-namespace Chess.Logic;
+namespace Chess.Engine.Logic;
 
 internal static class MoveMaker
 {
@@ -25,6 +26,12 @@ internal static class MoveMaker
             .Where(m => m.Source == from && m.Target == to)
             .ToList();
 
+        Console.WriteLine($"Current move: from {from} to {to}");
+        foreach (var move in moves )
+        {
+            Console.WriteLine(move);
+        }
+        
         if(UCI.Length == 5)
         {
             return candidates.FirstOrDefault(m => m.Promotion == ParsePromotion(UCI[4]));
@@ -66,13 +73,9 @@ internal static class MoveMaker
     /// <param name="board"></param>
     /// <param name="move"></param>
     /// <returns></returns>
-    internal static bool MakeMove(Board board, Move? move)
+    internal static UndoState? MakeMove(Board board, Move move)
     {
-        if (move == null)
-        {
-            return false;
-        }
-
+        Console.WriteLine($"MOVE: {move}, Source: {board.Layout[move.Source]}");
         PIECE_COLOR color = board.Layout[move.Source].PC;
         PIECE_TYPE type = board.Layout[move.Source].PT;
 
@@ -85,15 +88,17 @@ internal static class MoveMaker
         int[,]? undoCastling = UpdateMove(board, move, color, type);
 
 
+        Console.WriteLine($"{(int)color}, king position WHITE: {board.KingPosition[1]}, BLACK: {board.KingPosition[0]}");
         // 4. Check if king is threatened. Should add King square caching
         if (ThreatenedChecker.IsThreatened(board, board.KingPosition[(int)color], color))
         {
+            Console.WriteLine($"King is threatened!");
             UndoMove(board, move, undoState, undoCastling);
-            return false;
+            return null;
         }
 
         // 5. If yes -> UndoMove, return false; else -> return true (or the String of the move)
-        return true;
+        return undoState;
     }
 
     internal static void UndoMove(Board board, Move move, UndoState undoState, int[,]? undoCastling)
@@ -127,9 +132,9 @@ internal static class MoveMaker
                 {
                     board.Layout[move.Target-8] = new Piece(PIECE_COLOR.BLACK, PIECE_TYPE.PAWN);
                 }
-                board.Layout[move.Target] = undoState.Target;
-                board.Layout[move.Source] = undoState.Source;
             }
+            board.Layout[move.Target] = undoState.Target;
+            board.Layout[move.Source] = undoState.Source;
         }
     }
 
@@ -178,11 +183,11 @@ internal static class MoveMaker
         {        
             if (color == PIECE_COLOR.BLACK)
             {
-                board.Layout[move.Target+8] = new(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
+                board.Layout[move.Target-8] = new(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
             }
             if (color == PIECE_COLOR.WHITE)
             {
-                board.Layout[move.Target-8] = new(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
+                board.Layout[move.Target+8] = new(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
             }
         }           
         UpdateBaseMove(board, move);    

@@ -1,6 +1,6 @@
-using Chess.Structures;
+using Chess.Engine.Structures;
 
-namespace Chess.Logic;
+namespace Chess.Engine.Logic;
 
 /// <summary>
 /// This class is used to contain a method of checking whether a specific square is under direct threat

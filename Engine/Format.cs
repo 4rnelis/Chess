@@ -1,7 +1,7 @@
-using Chess.Structures;
+using Chess.Engine.Structures;
 using System.Text.Json;
 
-namespace Chess;
+namespace Chess.Engine;
 
 public static class Format
 {
@@ -105,11 +105,13 @@ public static class Format
     /// <param name="board">The array of pieces</param>
     public static void PrintBoard(Piece[] board)
     {
+        Console.Write($"{'a',12}, {'b', 12}, {'c', 12}, {'d', 12}, {'e', 12}, {'f', 12}, {'g', 12}, {'h', 12} ");
         for (int i = 0; i < 64; i++)
         {
             if ((i & 7) == 0)
             {
                 Console.WriteLine();
+                Console.Write($"{8-(i >> 3)} ");
             }
             Console.Write($"{board[i].PC,5}_{board[i].PT,6}, ");
         }

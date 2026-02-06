@@ -1,5 +1,5 @@
-using Chess.Logic;
-namespace Chess.Structures;
+using Chess.Engine.Logic;
+namespace Chess.Engine.Structures;
 
 [Flags]
 public enum Castling

@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Chess.Structures;
+namespace Chess.Engine.Structures;
 
 public readonly struct UndoState(Piece source, Piece target, Castling castlingRights, int? enPassant, int[] prevKingPosition)
 {
