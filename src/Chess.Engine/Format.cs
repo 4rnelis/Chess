@@ -1,0 +1,136 @@
+using Chess.Engine.Structures;
+using System.Runtime.InteropServices;
+using System.Text.Json;
+
+namespace Chess.Engine;
+
+public static class Format
+{
+    /// <summary>
+    /// Converts FEN format to an array of Piece, that is used in internal game logic.
+    /// </summary>
+    /// <param name="FEN">FEN as a String</param>
+    /// <returns>A filled Piece[] array</returns>
+    public static Piece[] ImportFEN(string FEN) 
+    {
+        Piece[] parsed = new Piece[64];
+        int i = 0;
+        int j = 0;
+        while (i < 64) {
+            char e = FEN[j];
+            switch (e) {
+                case 'r':
+                    parsed[i] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.ROOK);
+                    i++;
+                    j++;
+                    break;
+                case 'n':
+                    parsed[i] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.KNIGHT);
+                    i++;
+                    j++;
+                    break;
+                case 'b':
+                    parsed[i] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.BISHOP);
+                    i++;
+                    j++;
+                    break;
+                case 'q':
+                    parsed[i] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.QUEEN);
+                    i++;
+                    j++;
+                    break;
+                case 'k':
+                    parsed[i] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.KING);
+                    i++;
+                    j++;
+                    break;
+                case 'p':
+                    parsed[i] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.PAWN);
+                    i++;
+                    j++;
+                    break;
+                case 'R':
+                    parsed[i] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.ROOK);
+                    i++;
+                    j++;
+                    break;
+                case 'N':
+                    parsed[i] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.KNIGHT);
+                    i++;
+                    j++;
+                    break;
+                case 'B':
+                    parsed[i] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.BISHOP);
+                    i++;
+                    j++;
+                    break;
+                case 'Q':
+                    parsed[i] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.QUEEN);
+                    i++;
+                    j++;
+                    break;
+                case 'K':
+                    parsed[i] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.KING);
+                    i++;
+                    j++;
+                    break;
+                case 'P':
+                    parsed[i] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.PAWN);
+                    i++;
+                    j++;
+                    break;
+                case '/':
+                    j++;
+                    continue;
+                default:
+                    for (int k = 0; k < e-'0'; k++)
+                    {
+                        parsed[i] = new Piece(pc: PIECE_COLOR.NONE, pt: PIECE_TYPE.NONE);
+                        i++;
+                    }
+                    j++;
+                    break;
+            }
+        }
+        return parsed;
+    }
+
+    /// <summary>
+    /// Queries a local JSON file to extract a layout of pieces. Format "key: FEN".
+    /// </summary>
+    /// <param name="file">The path to the JSON file</param>
+    /// <param name="key">The identifier - first value of JSON</param>
+    /// <returns>FEN in a String format</returns>
+    public static string GetFENJsonFile(string file, string key)
+    {
+        var json = File.ReadAllText(file);
+
+        var layouts = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
+                    ?? throw new InvalidOperationException("Invalid JSON");
+
+        if (layouts.TryGetValue(key, out var fen))
+        {
+            return fen;
+        } else throw new Exception($"Layout {key} does not exist in {file}");
+    }
+
+    /// <summary>
+    /// Prints the disposition of pieces on the board.
+    /// </summary>
+    /// <param name="board">The array of pieces</param>
+    public static void PrintBoard(Piece[] board)
+    {
+        Console.Write($"{'a',12}, {'b', 12}, {'c', 12}, {'d', 12}, {'e', 12}, {'f', 12}, {'g', 12}, {'h', 12} ");
+        for (int i = 0; i < 64; i++)
+        {
+            if ((i & 7) == 0)
+            {
+                Console.WriteLine();
+                Console.Write($"{8-(i >> 3)} ");
+            }
+            Console.Write($"{board[i].PC,5}_{board[i].PT,6}, ");
+        }
+        Console.WriteLine();
+    }
+}
+

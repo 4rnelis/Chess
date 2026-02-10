@@ -1,4 +1,3 @@
-using System.Buffers.Binary;
 using Chess.Engine.Structures;
 
 namespace Chess.Engine.Logic;
@@ -17,7 +16,7 @@ public static class MovesGenerator
     public static List<Move> GetValidMoves(Board board, int position)
     {
         Piece piece = board.Layout[position];
-        Console.WriteLine($"{piece.PC}, {piece.PT}");
+        // Console.WriteLine($"{piece.PC}, {piece.PT}");
         return piece.PT switch
         {
             PIECE_TYPE.PAWN => GetValidMovesPawn(board, position, piece.PC),
@@ -62,13 +61,14 @@ public static class MovesGenerator
                             to = position+16;
                             if ((uint)to < 64 && (position >> 3) == 1 && board.Layout[to].PT == PIECE_TYPE.NONE)
                             {
+                                // // Console.WriteLine("[MOVE GENERATOR] DOUBLE PUSH POSSIBLE");
                                 moves.Add(new Move(position, to, MOVE_FLAGS.DoublePawnPush));
                             }
                         }   
                     }
                     // Capture left
                     to = position+9;
-                    if (((uint)to < 64 && (position & 7) != 7 && board.Layout[to].PC == PIECE_COLOR.WHITE) || to == board.EnPassantSq)
+                    if ((uint)to < 64 && (position & 7) != 7 && (board.Layout[to].PC == PIECE_COLOR.WHITE || to == board.EnPassantSq))
                     {
                         flags = MOVE_FLAGS.Capture;
                         if (to == board.EnPassantSq)
@@ -88,7 +88,7 @@ public static class MovesGenerator
                     }
                     // Capture right
                     to = position+7;
-                    if (((uint)to < 64 && (position & 7) != 0 && board.Layout[to].PC == PIECE_COLOR.WHITE) || to == board.EnPassantSq)
+                    if ((uint)to < 64 && (position & 7) != 0 && (board.Layout[to].PC == PIECE_COLOR.WHITE || to == board.EnPassantSq))
                     {
                         flags = MOVE_FLAGS.Capture;
                         if (to == board.EnPassantSq)
@@ -134,7 +134,7 @@ public static class MovesGenerator
                     }
                     // Capture left
                     to = position-9;
-                    if (((uint)to < 64 && (position & 7) != 0 && board.Layout[to].PC == PIECE_COLOR.BLACK) || to == board.EnPassantSq)
+                    if ((uint)to < 64 && (position & 7) != 0 && (board.Layout[to].PC == PIECE_COLOR.BLACK || to == board.EnPassantSq))
                     {
                         flags = MOVE_FLAGS.Capture;
                         if (to == board.EnPassantSq)
@@ -154,7 +154,7 @@ public static class MovesGenerator
                     }
                     // Capture right
                     to = position-7;
-                    if (((uint)to < 64 && (position & 7) != 7 && board.Layout[to].PC == PIECE_COLOR.BLACK) || to == board.EnPassantSq)
+                    if ((uint)to < 64 && (position & 7) != 7 && (board.Layout[to].PC == PIECE_COLOR.BLACK || to == board.EnPassantSq))
                     {
                         flags = MOVE_FLAGS.Capture;
                         if (to == board.EnPassantSq)

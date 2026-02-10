@@ -1,5 +1,3 @@
-using System.Diagnostics.Tracing;
-using System.Security.Cryptography;
 using Chess.Engine.Structures;
 
 namespace Chess.Engine.Logic;
@@ -26,10 +24,10 @@ internal static class MoveMaker
             .Where(m => m.Source == from && m.Target == to)
             .ToList();
 
-        Console.WriteLine($"Current move: from {from} to {to}");
+        // Console.WriteLine($"Current move: from {from} to {to}");
         foreach (var move in moves )
         {
-            Console.WriteLine(move);
+            // Console.WriteLine(move);
         }
         
         if(UCI.Length == 5)
@@ -75,38 +73,52 @@ internal static class MoveMaker
     /// <returns></returns>
     internal static UndoState? MakeMove(Board board, Move move)
     {
-        Console.WriteLine($"MOVE: {move}, Source: {board.Layout[move.Source]}");
+        // Console.WriteLine($"MOVE: {move}, Source: {board.Layout[move.Source]}");
+        // Console.WriteLine($"[Move Maker] En Passant Sq: {board.EnPassantSq}");
         PIECE_COLOR color = board.Layout[move.Source].PC;
         PIECE_TYPE type = board.Layout[move.Source].PT;
+        // if (color == PIECE_COLOR.BLACK && type ==PIECE_TYPE.PAWN) {
+        Format.PrintBoard(board.Layout);
+        // }
 
-        
+
+
         // 1. Check validity
         // 2. Store the state in undoState
-        UndoState undoState = new(board.Layout[move.Source], board.Layout[move.Target], board.CastlingRights, board.EnPassantSq, board.KingPosition);
+        UndoState undoState = new(board.Layout[move.Source], board.Layout[move.Target], board.SideToMove, board.CastlingRights, board.EnPassantSq, board.KingPosition)
+        {
+            // 3. Make the move
+            CastlingPositions = UpdateMove(board, move, color, type)
+        };
 
-        // 3. Make the move
-        int[,]? undoCastling = UpdateMove(board, move, color, type);
 
-
-        Console.WriteLine($"{(int)color}, king position WHITE: {board.KingPosition[1]}, BLACK: {board.KingPosition[0]}");
+        // Console.WriteLine($"{(int)color}, king position WHITE: {board.KingPosition[1]}, BLACK: {board.KingPosition[0]}");
         // 4. Check if king is threatened. Should add King square caching
         if (ThreatenedChecker.IsThreatened(board, board.KingPosition[(int)color], color))
         {
-            Console.WriteLine($"King is threatened!");
-            UndoMove(board, move, undoState, undoCastling);
+            // Console.WriteLine($"King is threatened!");
+            UndoMove(board, move, undoState);
             return null;
         }
 
+        board.UndoState = undoState;
+
+        board.SideToMove = Board.GetOppositeColor(board.SideToMove);
         // 5. If yes -> UndoMove, return false; else -> return true (or the String of the move)
+        // Console.WriteLine($"[Move Maker] En Passant Sq after: {board.EnPassantSq}");
+        // Console.WriteLine("BOARD after the move");
+        Format.PrintBoard(board.Layout);
         return undoState;
     }
 
-    internal static void UndoMove(Board board, Move move, UndoState undoState, int[,]? undoCastling)
+    internal static void UndoMove(Board board, Move move, UndoState undoState)
     {
+
         // Restore the previous variables to a board.
         board.CastlingRights = undoState.PrevCastlingRights;
         board.EnPassantSq = undoState.PrevEnPassant;
         board.KingPosition = undoState.PrevKingPosition;
+        int[,]? undoCastling = undoState.CastlingPositions;
 
         // Undo castling from previously gathered stored variable
         if ((move.Flags & MOVE_FLAGS.Castling) != 0)
@@ -117,7 +129,9 @@ internal static class MoveMaker
             }
             // Switch the positions back
             board.Layout[undoCastling[0,1]] = board.Layout[undoCastling[0,0]];
+            board.Layout[undoCastling[0,0]] = new Piece(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
             board.Layout[undoCastling[1,1]] = board.Layout[undoCastling[1,0]];
+            board.Layout[undoCastling[1,0]] = new Piece(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
 
         } else 
         // Switch back the previous positions (En passant: Add a new piece on +8/-8 depending on color)
@@ -126,16 +140,18 @@ internal static class MoveMaker
             {
                 if (undoState.Source.PC == PIECE_COLOR.BLACK)
                 {
-                    board.Layout[move.Target+8] = new Piece(PIECE_COLOR.WHITE, PIECE_TYPE.PAWN);
+                    board.Layout[move.Target-8] = new Piece(PIECE_COLOR.WHITE, PIECE_TYPE.PAWN);
                 }
                 if (undoState.Source.PC == PIECE_COLOR.WHITE)
                 {
-                    board.Layout[move.Target-8] = new Piece(PIECE_COLOR.BLACK, PIECE_TYPE.PAWN);
+                    board.Layout[move.Target+8] = new Piece(PIECE_COLOR.BLACK, PIECE_TYPE.PAWN);
                 }
             }
             board.Layout[move.Target] = undoState.Target;
             board.Layout[move.Source] = undoState.Source;
         }
+
+        board.SideToMove = undoState.SideToMove;
     }
 
     internal static int[,]? UpdateMove(Board board, Move move, PIECE_COLOR color, PIECE_TYPE type)
@@ -265,7 +281,7 @@ internal static class MoveMaker
         {
             board.EnPassantSq = move.Source + 8;
         } 
-        if (color == PIECE_COLOR.WHITE) 
+        else if (color == PIECE_COLOR.WHITE) 
         {
             board.EnPassantSq = move.Source - 8;
         }

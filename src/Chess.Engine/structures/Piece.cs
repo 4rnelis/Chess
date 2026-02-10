@@ -4,11 +4,16 @@ public enum PIECE_COLOR {BLACK = 0, WHITE = 1, NONE = 2};
 public enum PIECE_TYPE {PAWN, ROOK, BISHOP, KNIGHT, KING, QUEEN, NONE};
 
 /// <summary>
-/// This class represents a structure of a playing piece, and its move logic
+/// This struct represents a playing piece
 /// </summary> 
-public class Piece(PIECE_COLOR pc, PIECE_TYPE pt)
+public struct Piece(PIECE_COLOR pc, PIECE_TYPE pt)
 {
     public PIECE_COLOR PC { get; } = pc;
     public PIECE_TYPE PT { get; } = pt;
+
+    public override string ToString()
+    {
+        return $"{PC}, {PT}";
+    }
 }
 

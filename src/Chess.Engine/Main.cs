@@ -4,7 +4,7 @@ using Chess.Engine;
 
 Console.WriteLine("Hello, World!");
 
-var layout = Format.ImportFEN(Format.GetFENJsonFile("./Engine/resources/layouts.json", "1"));
+var layout = Format.ImportFEN(Format.GetFENJsonFile("./resources/layouts.json", "1"));
 Board board = new Board(layout);
 Format.PrintBoard(board.Layout);
 
@@ -22,9 +22,13 @@ while (true)
         Console.WriteLine("Invalid move chosen!");
         continue;
     }
-    MoveMaker.MakeMove(board, move);
+    UndoState? undoState = MoveMaker.MakeMove(board, move);
+    Format.PrintBoard(board.Layout);
+    if (undoState.HasValue) {
+        MoveMaker.UndoMove(board, move, undoState.Value);
+    }
     Format.PrintBoard(board.Layout);
     Console.WriteLine($"Black mated: {MateChecker.CheckMate(board, PIECE_COLOR.BLACK)}");
     Console.WriteLine($"White mated: {MateChecker.CheckMate(board, PIECE_COLOR.WHITE)}");
-
+    
 }

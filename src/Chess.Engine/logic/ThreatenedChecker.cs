@@ -17,7 +17,7 @@ public static class ThreatenedChecker
     /// <returns>true/false</returns>
     public static bool IsThreatened(Board board, int position, PIECE_COLOR color)
     {
-        Console.WriteLine($"Checking if {position} is threatened");
+        // Console.WriteLine($"Checking if {position} is threatened");
         return IsPawnThreatened(board, position, color) || 
             IsOrthogonallyThreatened(board, position, color) || 
             IsDiagonallyThreatened(board, position, color) ||

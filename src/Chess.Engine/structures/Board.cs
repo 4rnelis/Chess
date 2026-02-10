@@ -1,4 +1,5 @@
 using Chess.Engine.Logic;
+
 namespace Chess.Engine.Structures;
 
 [Flags]
@@ -15,15 +16,18 @@ public sealed class Board
 {
     public Piece[] Layout { get; internal set; }
     public Castling CastlingRights { get; internal set; } = Castling.WhiteKingSide | Castling.WhiteQueenSide | Castling.BlackKingSide | Castling.BlackQueenSide;
-    public int? EnPassantSq { get; internal set; }
+    public int EnPassantSq { get; internal set; } = -1;
+    public PIECE_COLOR SideToMove { get; internal set; } = PIECE_COLOR.WHITE;
     
     // Caching king positions for faster checking
     public int[] KingPosition {get; internal set; } = [4, 60];
     public UndoState UndoState {get; internal set; }
 
     // // Acess to modify the board to internal MoveMaker
-    // public bool MakeMove(Move move) => MoveMaker.MakeMove(this, move);
-    // public void UndoMove(Move move) => MoveMaker.UndoMove(this, move, UndoState, new int[2, 2]);
+    public UndoState? MakeMove(Move move) => MoveMaker.MakeMove(this, move);
+    public void UndoMove(Move move, UndoState undoState) => MoveMaker.UndoMove(this, move, undoState);
+    public void UndoMove(Move move) => MoveMaker.UndoMove(this, move, UndoState);
+
 
     public Board()
     {
