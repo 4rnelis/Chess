@@ -1,3 +1,4 @@
+using Chess.Engine.Logic;
 namespace Chess.Engine.Structures;
 
 [Flags]
@@ -36,6 +37,6 @@ public class Move
 
     public override string ToString()
     {
-        return $"Source: {Source}, Target: {Target}, Flags: {Flags}";
+        return $"Source: {MoveMaker.SquareToUCI(Source)}, Target: {MoveMaker.SquareToUCI(Target)}, Flags: {Flags}";
     }
 }

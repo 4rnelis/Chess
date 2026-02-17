@@ -2,35 +2,51 @@
 using Chess.Engine.Logic;
 
 namespace Chess.Engine.Tests;
+public class PerftStats
+{
+    public long Nodes { get; set; } = 0;
+    public long Captures { get; set; } = 0;
+    public long EnPassant { get; set; } = 0;
+    public long Castles { get; set; } = 0;
+    public long Promotions { get; set; } = 0;
+}
+
 public static class Perft
 {
-    public static long Run(Board board, int depth)
+    public static long Run(Board board, int depth, PerftStats stats)
     {
-        Console.WriteLine($"[PERFT] Depth: {depth}");
         if (depth == 0)
+        {
+            stats.Nodes++;
             return 1;
+        }
 
         long nodes = 0;
+        List<Move> moves = MovesGenerator.GenerateAllMoves(board);
 
-        for (int sq = 0; sq < 64; sq++)
+        foreach (Move move in moves)
         {
-            if (board.Layout[sq].PC != board.SideToMove)
+            // Skip if move leaves king in check
+            var undo = board.MakeMove(move);
+            if (undo == null)
                 continue;
 
-            var moves = MovesGenerator.GetValidMoves(board, sq);
-
-            foreach (var move in moves)
+            // For depth 1, count move types at leaf nodes
+            if (depth == 1)
             {
-                var undo = board.MakeMove(move);
-                if (undo == null)
-                    continue;
-
-                nodes += Run(board, depth - 1);
-
-                board.UndoMove(move, undo.Value);
+                if ((move.Flags & MOVE_FLAGS.Capture) != 0) stats.Captures++;
+                if ((move.Flags & MOVE_FLAGS.EnPassant) != 0) stats.EnPassant++;
+                if ((move.Flags & MOVE_FLAGS.Castling) != 0) stats.Castles++;
+                if ((move.Flags & MOVE_FLAGS.Promotion) != 0) stats.Promotions++;
             }
+
+            long subtreeNodes = Run(board, depth - 1, stats);
+            nodes += subtreeNodes;
+
+            board.UndoMove(move, undo.Value);
         }
 
         return nodes;
     }
 }
+

@@ -17,7 +17,7 @@ public static class ThreatenedChecker
     /// <returns>true/false</returns>
     public static bool IsThreatened(Board board, int position, PIECE_COLOR color)
     {
-        // Console.WriteLine($"Checking if {position} is threatened");
+        // // Console.WriteLine($"Checking if {position} is threatened");
         return IsPawnThreatened(board, position, color) || 
             IsOrthogonallyThreatened(board, position, color) || 
             IsDiagonallyThreatened(board, position, color) ||
@@ -40,6 +40,7 @@ public static class ThreatenedChecker
                             possible_pawn = board.Layout[possible_pawn_pos];
                             if (possible_pawn.PC == PIECE_COLOR.WHITE && possible_pawn.PT == PIECE_TYPE.PAWN)
                             {
+                                // Console.WriteLine($"PAWN {MoveMaker.SquareToUCI(possible_pawn_pos)}, King pos: {MoveMaker.SquareToUCI(position)}, In Board: {MoveMaker.SquareToUCI(board.KingPosition[(int)color])}");
                                 return true;
                             }
                         }
@@ -52,6 +53,7 @@ public static class ThreatenedChecker
                             possible_pawn = board.Layout[possible_pawn_pos];
                             if (possible_pawn.PC == PIECE_COLOR.WHITE && possible_pawn.PT == PIECE_TYPE.PAWN)
                             {
+                                // Console.WriteLine($"PAWN {MoveMaker.SquareToUCI(possible_pawn_pos)}, King pos: {MoveMaker.SquareToUCI(position)}, In Board: {MoveMaker.SquareToUCI(board.KingPosition[(int)color])}");
                                 return true;
                             }
                         }
@@ -60,7 +62,7 @@ public static class ThreatenedChecker
                 return false;
             case PIECE_COLOR.WHITE:
                 {
-                    if ((position & 7) != 7)
+                    if ((position & 7) != 0)
                     {
                         possible_pawn_pos = position - 9;
                         if ((uint)possible_pawn_pos < 64)
@@ -68,11 +70,12 @@ public static class ThreatenedChecker
                             possible_pawn = board.Layout[possible_pawn_pos];
                             if (possible_pawn.PC == PIECE_COLOR.BLACK && possible_pawn.PT == PIECE_TYPE.PAWN)
                             {
+                                // Console.WriteLine($"PAWN {MoveMaker.SquareToUCI(possible_pawn_pos)}, King pos: {MoveMaker.SquareToUCI(position)}, In Board: {MoveMaker.SquareToUCI(board.KingPosition[(int)color])}");
                                 return true;
                             }
                         }
                     }
-                    if ((position & 7) != 0)
+                    if ((position & 7) != 7)
                     {
                         possible_pawn_pos = position - 7;
                         if ((uint)possible_pawn_pos < 64)
@@ -80,6 +83,7 @@ public static class ThreatenedChecker
                             possible_pawn = board.Layout[possible_pawn_pos];
                             if (possible_pawn.PC == PIECE_COLOR.BLACK && possible_pawn.PT == PIECE_TYPE.PAWN)
                             {
+                                // Console.WriteLine($"PAWN {MoveMaker.SquareToUCI(possible_pawn_pos)}, King pos: {MoveMaker.SquareToUCI(position)}, In Board: {MoveMaker.SquareToUCI(board.KingPosition[(int)color])}");
                                 return true;
                             }
                         }
@@ -117,6 +121,7 @@ public static class ThreatenedChecker
                 {
                     if (potentialRQ.PC == Board.GetOppositeColor(color) && (potentialRQ.PT == PIECE_TYPE.QUEEN || potentialRQ.PT == PIECE_TYPE.ROOK))
                     {
+                        // Console.WriteLine($"Orthogoanal {MoveMaker.SquareToUCI(tp)}, King pos: {MoveMaker.SquareToUCI(position)}, In Board: {MoveMaker.SquareToUCI(board.KingPosition[(int)color])}");
                         return true;
                     }
                     break;
@@ -156,6 +161,7 @@ public static class ThreatenedChecker
                 {
                     if (potentialRQ.PC == Board.GetOppositeColor(color) && (potentialRQ.PT == PIECE_TYPE.QUEEN || potentialRQ.PT == PIECE_TYPE.BISHOP))
                     {
+                        // Console.WriteLine($"Diagonal {MoveMaker.SquareToUCI(tp)}, King pos: {MoveMaker.SquareToUCI(position)}, In Board: {MoveMaker.SquareToUCI(board.KingPosition[(int)color])}");
                         return true;
                     }
                     break;
@@ -190,6 +196,7 @@ public static class ThreatenedChecker
                 if (potentialKnight.PC != color)
                 {
                     if (potentialKnight.PC == Board.GetOppositeColor(color) && potentialKnight.PT == PIECE_TYPE.KNIGHT) {
+                        // Console.WriteLine($"Knight {MoveMaker.SquareToUCI(tp)}, King pos: {MoveMaker.SquareToUCI(position)}, In Board: {MoveMaker.SquareToUCI(board.KingPosition[(int)color])}");
                         return true;
                     }
                 } 
@@ -220,6 +227,7 @@ public static class ThreatenedChecker
                 if (potentialKing.PC != color)
                 {
                     if (potentialKing.PC == Board.GetOppositeColor(color) && potentialKing.PT == PIECE_TYPE.KING) {
+                        // Console.WriteLine($"KING {MoveMaker.SquareToUCI(tp)}, King pos: {MoveMaker.SquareToUCI(position)}, In Board: {MoveMaker.SquareToUCI(board.KingPosition[(int)color])}");
                         return true;
                     }
                 } 

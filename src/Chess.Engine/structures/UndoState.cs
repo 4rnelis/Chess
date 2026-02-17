@@ -9,4 +9,9 @@ public struct UndoState(Piece source, Piece target, PIECE_COLOR sideToMove, Cast
     public readonly int PrevEnPassant = enPassant;
     public int[,]? CastlingPositions = castlingPositions;
     public readonly int[] PrevKingPosition = prevKingPosition;
+
+    public override string ToString()
+    {
+        return $"Source: {Source}, Target: {Target}, SideToMove: {SideToMove}, PrevCastlingRights: {PrevCastlingRights}, PrevEnPassant: {PrevEnPassant}, PrevKingPosition: [{string.Join(", ", PrevKingPosition)}]";
+    }
 }

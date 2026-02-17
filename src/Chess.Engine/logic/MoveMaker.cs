@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using Chess.Engine.Structures;
 
 namespace Chess.Engine.Logic;
@@ -24,11 +25,11 @@ internal static class MoveMaker
             .Where(m => m.Source == from && m.Target == to)
             .ToList();
 
-        // Console.WriteLine($"Current move: from {from} to {to}");
-        foreach (var move in moves )
-        {
-            // Console.WriteLine(move);
-        }
+        // // Console.WriteLine($"Current move: from {from} to {to}");
+        // foreach (var move in moves )
+        // {
+        //     // // Console.WriteLine(move);
+        // }
         
         if(UCI.Length == 5)
         {
@@ -38,9 +39,20 @@ internal static class MoveMaker
         return candidates.Count == 1 ? candidates[0] : null;;
     }
 
+    public static string ToUCI(Move move) {
+        return SquareToUCI(move.Source) + SquareToUCI(move.Target);
+    }
+
     public static int ParseSquare(char fc, char rc)
     {
         return ('8'-rc)*8+(fc-'a');
+    }
+
+    public static string SquareToUCI(int square)
+    {
+        char file = (char)('a' + (square % 8));
+        char rank = (char)('8' - (square / 8));
+        return $"{file}{rank}";
     }
 
     public static PIECE_TYPE ParsePromotion(char u)
@@ -73,30 +85,39 @@ internal static class MoveMaker
     /// <returns></returns>
     internal static UndoState? MakeMove(Board board, Move move)
     {
-        // Console.WriteLine($"MOVE: {move}, Source: {board.Layout[move.Source]}");
-        // Console.WriteLine($"[Move Maker] En Passant Sq: {board.EnPassantSq}");
+        // // Console.WriteLine($"MOVE: {move}, Source: {board.Layout[move.Source]}");
+        // // Console.WriteLine($"[Move Maker] En Passant Sq: {board.EnPassantSq}");
         PIECE_COLOR color = board.Layout[move.Source].PC;
         PIECE_TYPE type = board.Layout[move.Source].PT;
         // if (color == PIECE_COLOR.BLACK && type ==PIECE_TYPE.PAWN) {
-        Format.PrintBoard(board.Layout);
+        // // Format.PrintBoard(board.Layout);
         // }
 
-
-
+        // Console.WriteLine("MOVE: " + move);
+        // Format.PrintBoard(board.Layout);
         // 1. Check validity
         // 2. Store the state in undoState
-        UndoState undoState = new(board.Layout[move.Source], board.Layout[move.Target], board.SideToMove, board.CastlingRights, board.EnPassantSq, board.KingPosition)
+        UndoState undoState = new(board.Layout[move.Source], board.Layout[move.Target], board.SideToMove, board.CastlingRights, board.EnPassantSq, board.KingPosition.ToArray())
         {
             // 3. Make the move
             CastlingPositions = UpdateMove(board, move, color, type)
         };
 
-
-        // Console.WriteLine($"{(int)color}, king position WHITE: {board.KingPosition[1]}, BLACK: {board.KingPosition[0]}");
+        // // Console.WriteLine($"{(int)color}, king position WHITE: {board.KingPosition[1]}, BLACK: {board.KingPosition[0]}");
         // 4. Check if king is threatened. Should add King square caching
+        if ((int)color == 2) {
+            // Console.WriteLine("COLOR2");
+            // Format.PrintBoard(board.Layout);
+            // Console.WriteLine(move);
+            // Console.WriteLine(undoState);
+            // Console.WriteLine("COLOR2 UNDONE");
+            UndoMove(board, move, undoState);
+            // Format.PrintBoard(board.Layout);
+        }
         if (ThreatenedChecker.IsThreatened(board, board.KingPosition[(int)color], color))
         {
-            // Console.WriteLine($"King is threatened!");
+            // Console.WriteLine("Threatened Check");
+            // // Console.WriteLine($"King is threatened!");
             UndoMove(board, move, undoState);
             return null;
         }
@@ -105,9 +126,9 @@ internal static class MoveMaker
 
         board.SideToMove = Board.GetOppositeColor(board.SideToMove);
         // 5. If yes -> UndoMove, return false; else -> return true (or the String of the move)
-        // Console.WriteLine($"[Move Maker] En Passant Sq after: {board.EnPassantSq}");
-        // Console.WriteLine("BOARD after the move");
-        Format.PrintBoard(board.Layout);
+        // // Console.WriteLine($"[Move Maker] En Passant Sq after: {board.EnPassantSq}");
+        // // Console.WriteLine("BOARD after the move");
+        // // Format.PrintBoard(board.Layout);
         return undoState;
     }
 
@@ -177,9 +198,56 @@ internal static class MoveMaker
         {
             UpdateDoublePawnPush(board, move, color);
         } else { board.EnPassantSq = -1; }
-        if ( type == PIECE_TYPE.KING )
+        if ( type == PIECE_TYPE.KING && (move.Flags & MOVE_FLAGS.Castling) == 0)
         {
             board.KingPosition[(int)color] = move.Target;
+            if (color == PIECE_COLOR.BLACK)
+            {
+                board.CastlingRights &= ~Castling.BlackKingSide;
+                board.CastlingRights &= ~Castling.BlackQueenSide;
+            } else
+            {
+                board.CastlingRights &= ~Castling.WhiteKingSide;
+                board.CastlingRights &= ~Castling.WhiteQueenSide;
+            }
+        }
+        if ( type == PIECE_TYPE.ROOK)
+        {
+            if (move.Source == 0)
+            {
+                board.CastlingRights &= ~Castling.BlackQueenSide;
+            }
+            if (move.Source == 7)
+            {
+                board.CastlingRights &= ~Castling.BlackKingSide;
+            }
+            if (move.Source == 56)
+            {
+                board.CastlingRights &= ~Castling.WhiteQueenSide;
+            }
+            if (move.Source == 63)
+            {
+                board.CastlingRights &= ~Castling.WhiteKingSide;
+            }
+        }
+        if (board.Layout[move.Target].PT == PIECE_TYPE.ROOK)
+        {
+            if (move.Target == 0)
+            {
+                board.CastlingRights &= ~Castling.BlackQueenSide;
+            }
+            if (move.Target == 7)
+            {
+                board.CastlingRights &= ~Castling.BlackKingSide;
+            }
+            if (move.Target == 56)
+            {
+                board.CastlingRights &= ~Castling.WhiteQueenSide;
+            }
+            if (move.Target == 63)
+            {
+                board.CastlingRights &= ~Castling.WhiteKingSide;
+            }
         }
         return undoCastling;
     }
@@ -189,7 +257,6 @@ internal static class MoveMaker
 
         board.Layout[move.Target] = board.Layout[move.Source];
         board.Layout[move.Source] = new(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
-        
     }
 
     internal static void UpdateCapture(Board board, Move move, PIECE_COLOR color)
