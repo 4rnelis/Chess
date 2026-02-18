@@ -89,6 +89,7 @@ internal static class MoveMaker
         // // Console.WriteLine($"[Move Maker] En Passant Sq: {board.EnPassantSq}");
         PIECE_COLOR color = board.Layout[move.Source].PC;
         PIECE_TYPE type = board.Layout[move.Source].PT;
+        PIECE_TYPE capturedType = board.Layout[move.Target].PT;  // Save captured piece type BEFORE modifying board
         // if (color == PIECE_COLOR.BLACK && type ==PIECE_TYPE.PAWN) {
         // // Format.PrintBoard(board.Layout);
         // }
@@ -100,7 +101,7 @@ internal static class MoveMaker
         UndoState undoState = new(board.Layout[move.Source], board.Layout[move.Target], board.SideToMove, board.CastlingRights, board.EnPassantSq, board.KingPosition.ToArray())
         {
             // 3. Make the move
-            CastlingPositions = UpdateMove(board, move, color, type)
+            CastlingPositions = UpdateMove(board, move, color, type, capturedType)
         };
 
         // // Console.WriteLine($"{(int)color}, king position WHITE: {board.KingPosition[1]}, BLACK: {board.KingPosition[0]}");
@@ -175,7 +176,7 @@ internal static class MoveMaker
         board.SideToMove = undoState.SideToMove;
     }
 
-    internal static int[,]? UpdateMove(Board board, Move move, PIECE_COLOR color, PIECE_TYPE type)
+    internal static int[,]? UpdateMove(Board board, Move move, PIECE_COLOR color, PIECE_TYPE type, PIECE_TYPE capturedType)
     {
         int[,]? undoCastling = null;
         if (move.Flags == MOVE_FLAGS.None) 
@@ -230,7 +231,8 @@ internal static class MoveMaker
                 board.CastlingRights &= ~Castling.WhiteKingSide;
             }
         }
-        if (board.Layout[move.Target].PT == PIECE_TYPE.ROOK)
+        // Check if a rook was captured on its starting square
+        if (capturedType == PIECE_TYPE.ROOK)
         {
             if (move.Target == 0)
             {

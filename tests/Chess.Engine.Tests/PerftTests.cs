@@ -96,6 +96,17 @@ public class PerftTests
         Assert.Equal(4085603, stats.Nodes);
     }
 
+    [Fact]
+    public void Perft_KiwiPete_Depth5()
+    {
+        var board = new Board(kiwipete);
+        var stats = new PerftStats();
+        Perft.Run(board, 5, stats);
+
+        Console.WriteLine($"Nodes: {stats.Nodes}, Captures: {stats.Captures}, EnPassant: {stats.EnPassant}, Castles: {stats.Castles}, Promotions: {stats.Promotions}");
+        Assert.Equal(193690690, stats.Nodes);
+    }
+
     // [Fact]
     // public void Perft_StartPosition_Depth3()
     // {
