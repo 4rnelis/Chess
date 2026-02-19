@@ -1,15 +1,17 @@
-using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
 using Chess.Engine.Structures;
 
 namespace Chess.Engine.Logic;
 
 internal static class MoveMaker
 {
+    private static readonly Piece WhitePawn = new(PIECE_COLOR.WHITE, PIECE_TYPE.PAWN);
+    private static readonly Piece BlackPawn = new(PIECE_COLOR.BLACK, PIECE_TYPE.PAWN);
+    private static readonly Castling[] ClearRookCastlingMaskBySquare = BuildRookMaskTable();
 
     /// <summary>
     /// Takes a UCI string as an input, parses the coordinates to a 1D array, and checks if the requested move is valid.
     /// If yes, return the Move object for further logic.
-    /// It needs to deal with promotions later on.
     /// </summary>
     /// <param name="board"></param>
     /// <param name="UCI"></param>
@@ -19,24 +21,39 @@ internal static class MoveMaker
         int from = ParseSquare(UCI[0], UCI[1]);
         int to = ParseSquare(UCI[2], UCI[3]);
 
-        List<Move> moves = MovesGenerator.GetValidMoves(board, from);
+        Span<Move> moves = stackalloc Move[64];
+        int moveCount = MovesGenerator.GetValidMovesCount(board, from, moves);
 
-        var candidates = moves
-            .Where(m => m.Source == from && m.Target == to)
-            .ToList();
-
-        // // Console.WriteLine($"Current move: from {from} to {to}");
-        // foreach (var move in moves )
-        // {
-        //     // // Console.WriteLine(move);
-        // }
-        
-        if(UCI.Length == 5)
+        // Check the promotion
+        if (UCI.Length == 5)
         {
-            return candidates.FirstOrDefault(m => m.Promotion == ParsePromotion(UCI[4]));
+            PIECE_TYPE promotion = ParsePromotion(UCI[4]);
+            for (int i = 0; i < moveCount; i++)
+            {
+                Move move = moves[i];
+                if (move.Source == from && move.Target == to && move.Promotion == promotion)
+                {
+                    return move;
+                }
+            }
+            return null;
         }
 
-        return candidates.Count == 1 ? candidates[0] : null;;
+        Move? found = null;
+        for (int i = 0; i < moveCount; i++)
+        {
+            Move move = moves[i];
+            if (move.Source == from && move.Target == to)
+            {
+                if (found.HasValue)
+                {
+                    return null;
+                }
+                found = move;
+            }
+        }
+
+        return found;
     }
 
     public static string ToUCI(Move move) {
@@ -77,209 +94,169 @@ internal static class MoveMaker
     }
 
     /// <summary>
-    /// I wanted to put this outside of the board object, such as the pattern of Model and Logic would be separated, but due to security
-    /// concerns and the goal of having a reliable source of truth, the moveMaking logic stays here.
+    /// Main function for making the move logic
     /// </summary>
     /// <param name="board"></param>
     /// <param name="move"></param>
     /// <returns></returns>
     internal static UndoState? MakeMove(Board board, Move move)
     {
-        // // Console.WriteLine($"MOVE: {move}, Source: {board.Layout[move.Source]}");
-        // // Console.WriteLine($"[Move Maker] En Passant Sq: {board.EnPassantSq}");
         PIECE_COLOR color = board.Layout[move.Source].PC;
         PIECE_TYPE type = board.Layout[move.Source].PT;
-        PIECE_TYPE capturedType = board.Layout[move.Target].PT;  // Save captured piece type BEFORE modifying board
-        // if (color == PIECE_COLOR.BLACK && type ==PIECE_TYPE.PAWN) {
-        // // Format.PrintBoard(board.Layout);
-        // }
+        PIECE_TYPE capturedType = board.Layout[move.Target].PT; // Save for Rook castling rights checking
 
-        // Console.WriteLine("MOVE: " + move);
-        // Format.PrintBoard(board.Layout);
         // 1. Check validity
-        // 2. Store the state in undoState
-        UndoState undoState = new(board.Layout[move.Source], board.Layout[move.Target], board.SideToMove, board.CastlingRights, board.EnPassantSq, board.KingPosition.ToArray())
-        {
-            // 3. Make the move
-            CastlingPositions = UpdateMove(board, move, color, type, capturedType)
-        };
+        // 2. Store minimal previous state for a fast undo in case of illegal move
+        Piece prevSource = board.Layout[move.Source];
+        Piece prevTarget = board.Layout[move.Target];
+        PIECE_COLOR prevSide = board.SideToMove;
+        Castling prevCastling = board.CastlingRights;
+        int prevEnPassant = board.EnPassantSq;
+        int prevKingBlack = board.KingPosition[0];
+        int prevKingWhite = board.KingPosition[1];
 
-        // // Console.WriteLine($"{(int)color}, king position WHITE: {board.KingPosition[1]}, BLACK: {board.KingPosition[0]}");
+        // 3. Make the move
+        CastlingUndo undoCastling = UpdateMove(board, move, color, type, capturedType);
+
         // 4. Check if king is threatened. Should add King square caching
-        if ((int)color == 2) {
-            // Console.WriteLine("COLOR2");
-            // Format.PrintBoard(board.Layout);
-            // Console.WriteLine(move);
-            // Console.WriteLine(undoState);
-            // Console.WriteLine("COLOR2 UNDONE");
-            UndoMove(board, move, undoState);
-            // Format.PrintBoard(board.Layout);
-        }
         if (ThreatenedChecker.IsThreatened(board, board.KingPosition[(int)color], color))
         {
-            // Console.WriteLine("Threatened Check");
-            // // Console.WriteLine($"King is threatened!");
-            UndoMove(board, move, undoState);
+            UndoMoveFast(board, move, prevSource, prevTarget, prevSide, prevCastling, prevEnPassant, prevKingBlack, prevKingWhite, undoCastling);
             return null;
         }
 
+        // 5. Create full undo state only for legal moves
+        UndoState undoState = new(prevSource, prevTarget, prevSide, prevCastling, prevEnPassant, prevKingBlack, prevKingWhite)
+        {
+            CastlingUndo = undoCastling
+        };
+
         board.UndoState = undoState;
 
-        board.SideToMove = Board.GetOppositeColor(board.SideToMove);
-        // 5. If yes -> UndoMove, return false; else -> return true (or the String of the move)
-        // // Console.WriteLine($"[Move Maker] En Passant Sq after: {board.EnPassantSq}");
-        // // Console.WriteLine("BOARD after the move");
-        // // Format.PrintBoard(board.Layout);
+        board.SideToMove = prevSide == PIECE_COLOR.WHITE ? PIECE_COLOR.BLACK : PIECE_COLOR.WHITE;
         return undoState;
+    }
+
+    /// <summary>
+    /// Method to undo the move without requiring an UndoState object
+    /// </summary>
+    /// <param name="board"></param>
+    /// <param name="move"></param>
+    /// <param name="prevSource"></param>
+    /// <param name="prevTarget"></param>
+    /// <param name="prevSide"></param>
+    /// <param name="prevCastling"></param>
+    /// <param name="prevEnPassant"></param>
+    /// <param name="prevKingBlack"></param>
+    /// <param name="prevKingWhite"></param>
+    /// <param name="undoCastling"></param>
+    private static void UndoMoveFast(
+        Board board,
+        Move move,
+        Piece prevSource,
+        Piece prevTarget,
+        PIECE_COLOR prevSide,
+        Castling prevCastling,
+        int prevEnPassant,
+        int prevKingBlack,
+        int prevKingWhite,
+        CastlingUndo undoCastling)
+    {
+        RestoreBoardState(board, move, prevSource, prevTarget, prevSide, prevCastling, prevEnPassant, prevKingBlack, prevKingWhite, undoCastling);
     }
 
     internal static void UndoMove(Board board, Move move, UndoState undoState)
     {
-
-        // Restore the previous variables to a board.
-        board.CastlingRights = undoState.PrevCastlingRights;
-        board.EnPassantSq = undoState.PrevEnPassant;
-        board.KingPosition = undoState.PrevKingPosition;
-        int[,]? undoCastling = undoState.CastlingPositions;
-
-        // Undo castling from previously gathered stored variable
-        if ((move.Flags & MOVE_FLAGS.Castling) != 0)
-        {
-            if (undoCastling == null)
-            {
-                throw new Exception("undoCastling array is null in UndoMove. Something is wrong with castling logic!");
-            }
-            // Switch the positions back
-            board.Layout[undoCastling[0,1]] = board.Layout[undoCastling[0,0]];
-            board.Layout[undoCastling[0,0]] = new Piece(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
-            board.Layout[undoCastling[1,1]] = board.Layout[undoCastling[1,0]];
-            board.Layout[undoCastling[1,0]] = new Piece(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
-
-        } else 
-        // Switch back the previous positions (En passant: Add a new piece on +8/-8 depending on color)
-        {
-            if ((move.Flags & MOVE_FLAGS.EnPassant) != 0)
-            {
-                if (undoState.Source.PC == PIECE_COLOR.BLACK)
-                {
-                    board.Layout[move.Target-8] = new Piece(PIECE_COLOR.WHITE, PIECE_TYPE.PAWN);
-                }
-                if (undoState.Source.PC == PIECE_COLOR.WHITE)
-                {
-                    board.Layout[move.Target+8] = new Piece(PIECE_COLOR.BLACK, PIECE_TYPE.PAWN);
-                }
-            }
-            board.Layout[move.Target] = undoState.Target;
-            board.Layout[move.Source] = undoState.Source;
-        }
-
-        board.SideToMove = undoState.SideToMove;
+        RestoreBoardState(
+            board,
+            move,
+            undoState.Source,
+            undoState.Target,
+            undoState.SideToMove,
+            undoState.PrevCastlingRights,
+            undoState.PrevEnPassant,
+            undoState.PrevKingBlack,
+            undoState.PrevKingWhite,
+            undoState.CastlingUndo);
     }
 
-    internal static int[,]? UpdateMove(Board board, Move move, PIECE_COLOR color, PIECE_TYPE type, PIECE_TYPE capturedType)
+    /// <summary>
+    /// The logic for updating the state during a move
+    /// </summary>
+    /// <param name="board"></param>
+    /// <param name="move"></param>
+    /// <param name="color"></param>
+    /// <param name="type"></param>
+    /// <param name="capturedType"></param>
+    /// <returns></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static CastlingUndo UpdateMove(Board board, Move move, PIECE_COLOR color, PIECE_TYPE type, PIECE_TYPE capturedType)
     {
-        int[,]? undoCastling = null;
-        if (move.Flags == MOVE_FLAGS.None) 
-        {
-            UpdateBaseMove(board, move);
-        }
-        if ((move.Flags & MOVE_FLAGS.Capture) != 0)
-        {
-            UpdateCapture(board, move, color);
-        }
-        if ((move.Flags & MOVE_FLAGS.Castling) != 0)
+        CastlingUndo undoCastling = default;
+        var layout = board.Layout;
+        MOVE_FLAGS flags = move.Flags;
+
+        if ((flags & MOVE_FLAGS.Castling) != 0)
         {
             undoCastling = UpdateCastling(board, move, color);
+            board.EnPassantSq = -1;
         }
-        if ((move.Flags & MOVE_FLAGS.Promotion) != 0)
+        else if ((flags & MOVE_FLAGS.Promotion) != 0)
         {
-            UpdatePromotion(board, move, color);
+            layout[move.Target] = new Piece(color, move.Promotion);
+            layout[move.Source] = Piece.Empty;
+            board.EnPassantSq = -1;
         }
-        if ((move.Flags & MOVE_FLAGS.DoublePawnPush) != 0)
+        else
         {
-            UpdateDoublePawnPush(board, move, color);
-        } else { board.EnPassantSq = -1; }
-        if ( type == PIECE_TYPE.KING && (move.Flags & MOVE_FLAGS.Castling) == 0)
+            // Remove the captured pawn from enPassant
+            if ((flags & MOVE_FLAGS.EnPassant) != 0)
+            {
+                if (color == PIECE_COLOR.BLACK)
+                {
+                    layout[move.Target-8] = Piece.Empty;
+                }
+                else
+                {
+                    layout[move.Target+8] = Piece.Empty;
+                }
+            }
+
+            layout[move.Target] = layout[move.Source];
+            layout[move.Source] = Piece.Empty;
+
+            if ((flags & MOVE_FLAGS.DoublePawnPush) != 0)
+            {
+                board.EnPassantSq = color == PIECE_COLOR.BLACK ? move.Source + 8 : move.Source - 8;
+            }
+            else
+            {
+                board.EnPassantSq = -1;
+            }
+        }
+        if (type == PIECE_TYPE.KING && (flags & MOVE_FLAGS.Castling) == 0)
         {
             board.KingPosition[(int)color] = move.Target;
-            if (color == PIECE_COLOR.BLACK)
-            {
-                board.CastlingRights &= ~Castling.BlackKingSide;
-                board.CastlingRights &= ~Castling.BlackQueenSide;
-            } else
-            {
-                board.CastlingRights &= ~Castling.WhiteKingSide;
-                board.CastlingRights &= ~Castling.WhiteQueenSide;
-            }
+            board.CastlingRights &= color == PIECE_COLOR.BLACK
+                ? ~(Castling.BlackKingSide | Castling.BlackQueenSide)
+                : ~(Castling.WhiteKingSide | Castling.WhiteQueenSide);
         }
-        if ( type == PIECE_TYPE.ROOK)
+        if (type == PIECE_TYPE.ROOK)
         {
-            if (move.Source == 0)
-            {
-                board.CastlingRights &= ~Castling.BlackQueenSide;
-            }
-            if (move.Source == 7)
-            {
-                board.CastlingRights &= ~Castling.BlackKingSide;
-            }
-            if (move.Source == 56)
-            {
-                board.CastlingRights &= ~Castling.WhiteQueenSide;
-            }
-            if (move.Source == 63)
-            {
-                board.CastlingRights &= ~Castling.WhiteKingSide;
-            }
+            board.CastlingRights &= ~ClearRookCastlingMaskBySquare[move.Source];
         }
-        // Check if a rook was captured on its starting square
         if (capturedType == PIECE_TYPE.ROOK)
         {
-            if (move.Target == 0)
-            {
-                board.CastlingRights &= ~Castling.BlackQueenSide;
-            }
-            if (move.Target == 7)
-            {
-                board.CastlingRights &= ~Castling.BlackKingSide;
-            }
-            if (move.Target == 56)
-            {
-                board.CastlingRights &= ~Castling.WhiteQueenSide;
-            }
-            if (move.Target == 63)
-            {
-                board.CastlingRights &= ~Castling.WhiteKingSide;
-            }
+            board.CastlingRights &= ~ClearRookCastlingMaskBySquare[move.Target];
         }
         return undoCastling;
     }
 
-    internal static void UpdateBaseMove(Board board, Move move)
+    internal static CastlingUndo UpdateCastling(Board board, Move move, PIECE_COLOR color)
     {
-
-        board.Layout[move.Target] = board.Layout[move.Source];
-        board.Layout[move.Source] = new(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
-    }
-
-    internal static void UpdateCapture(Board board, Move move, PIECE_COLOR color)
-    {
-
-        if ((move.Flags & MOVE_FLAGS.EnPassant) != 0) 
-        {        
-            if (color == PIECE_COLOR.BLACK)
-            {
-                board.Layout[move.Target-8] = new(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
-            }
-            if (color == PIECE_COLOR.WHITE)
-            {
-                board.Layout[move.Target+8] = new(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
-            }
-        }           
-        UpdateBaseMove(board, move);    
-    }
-
-    internal static int[,]? UpdateCastling(Board board, Move move, PIECE_COLOR color)
-    {
+        CastlingUndo undo = default;
+        undo.IsValid = true;
+        var layout = board.Layout;
 
         // Remove the flags and switch depending which side/color
         if (color == PIECE_COLOR.BLACK)
@@ -289,22 +266,32 @@ internal static class MoveMaker
             
             if (move.Source == 0 || move.Target == 0)
             {
-                board.Layout[2] = board.Layout[4];
-                board.Layout[4] = new(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
-                board.Layout[3] = board.Layout[0];
-                board.Layout[0] = new(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
+                // Move King and Rook
+                layout[2] = layout[4];
+                layout[4] = Piece.Empty;
+                layout[3] = layout[0];
+                layout[0] = Piece.Empty;
+                // Update cached king position
                 board.KingPosition[0] = 2;
-                return new int[2,2] {{2, 4}, {3, 0}};
+                // Save their moves
+                undo.KingFrom = 2;
+                undo.KingTo = 4;
+                undo.RookFrom = 3;
+                undo.RookTo = 0;
+                return undo;
             }
             if (move.Source == 7 || move.Target == 7)
             {
-                board.Layout[6] = board.Layout[4];
-                board.Layout[4] = new(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
-                board.Layout[5] = board.Layout[7];
-                board.Layout[7] = new(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
-                // Update cached king position
+                layout[6] = layout[4];
+                layout[4] = Piece.Empty;
+                layout[5] = layout[7];
+                layout[7] = Piece.Empty;
                 board.KingPosition[0] = 6;
-                return new int[2,2] {{6, 4}, {5, 7}};
+                undo.KingFrom = 6;
+                undo.KingTo = 4;
+                undo.RookFrom = 5;
+                undo.RookTo = 7;
+                return undo;
             }
         }
 
@@ -315,44 +302,106 @@ internal static class MoveMaker
             
             if (move.Source == 56 || move.Target == 56)
             {
-                board.Layout[58] = board.Layout[60];
-                board.Layout[60] = new(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
-                board.Layout[59] = board.Layout[56];
-                board.Layout[56] = new(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
+                layout[58] = layout[60];
+                layout[60] = Piece.Empty;
+                layout[59] = layout[56];
+                layout[56] = Piece.Empty;
                 board.KingPosition[1] = 58;
-                return new int[2,2] {{58, 60}, {59, 56}};
+                undo.KingFrom = 58;
+                undo.KingTo = 60;
+                undo.RookFrom = 59;
+                undo.RookTo = 56;
+                return undo;
             }
             if (move.Source == 63 || move.Target == 63)
             {
-                board.Layout[62] = board.Layout[60];
-                board.Layout[60] = new(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
-                board.Layout[61] = board.Layout[63];
-                board.Layout[63] = new(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
+                layout[62] = layout[60];
+                layout[60] = Piece.Empty;
+                layout[61] = layout[63];
+                layout[63] = Piece.Empty;
                 board.KingPosition[1] = 62;
-                return new int[2,2] {{62, 60}, {61, 63}};
+                undo.KingFrom = 62;
+                undo.KingTo = 60;
+                undo.RookFrom = 61;
+                undo.RookTo = 63;
+                return undo;
             }
         }
         
-        return null;
+        undo.IsValid = false;
+        return undo;
     }
 
-    internal static void UpdatePromotion(Board board, Move move, PIECE_COLOR color)
+    /// <summary>
+    /// Indicate which position of the rooks are resposible for each castling right
+    /// </summary>
+    /// <returns></returns>
+    private static Castling[] BuildRookMaskTable()
     {
-        board.Layout[move.Target] = new Piece(color, move.Promotion);
-        board.Layout[move.Source] = new Piece(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
+        var table = new Castling[64];
+        table[0] = Castling.BlackQueenSide;
+        table[7] = Castling.BlackKingSide;
+        table[56] = Castling.WhiteQueenSide;
+        table[63] = Castling.WhiteKingSide;
+        return table;
     }
 
-    internal static void UpdateDoublePawnPush(Board board, Move move, PIECE_COLOR color)
+    /// <summary>
+    /// Apply undo logic onto board
+    /// </summary>
+    /// <param name="board"></param>
+    /// <param name="move"></param>
+    /// <param name="sourcePiece"></param>
+    /// <param name="targetPiece"></param>
+    /// <param name="sideToMove"></param>
+    /// <param name="castlingRights"></param>
+    /// <param name="enPassantSq"></param>
+    /// <param name="prevKingBlack"></param>
+    /// <param name="prevKingWhite"></param>
+    /// <param name="undoCastling"></param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RestoreBoardState(
+        Board board,
+        Move move,
+        Piece sourcePiece,
+        Piece targetPiece,
+        PIECE_COLOR sideToMove,
+        Castling castlingRights,
+        int enPassantSq,
+        int prevKingBlack,
+        int prevKingWhite,
+        CastlingUndo undoCastling)
     {
-        board.Layout[move.Target] = board.Layout[move.Source];
-        board.Layout[move.Source] = new(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
-        if (color == PIECE_COLOR.BLACK)
+        board.CastlingRights = castlingRights;
+        board.EnPassantSq = enPassantSq;
+        board.KingPosition[0] = prevKingBlack;
+        board.KingPosition[1] = prevKingWhite;
+        board.SideToMove = sideToMove;
+
+        var layout = board.Layout;
+        MOVE_FLAGS flags = move.Flags;
+
+        if ((flags & MOVE_FLAGS.Castling) != 0)
         {
-            board.EnPassantSq = move.Source + 8;
-        } 
-        else if (color == PIECE_COLOR.WHITE) 
-        {
-            board.EnPassantSq = move.Source - 8;
+            if (!undoCastling.IsValid)
+                throw new Exception("CastlingUndo is invalid in UndoMove. Something is wrong with castling logic!");
+
+            // Reset castling positions
+            layout[undoCastling.KingTo] = layout[undoCastling.KingFrom];
+            layout[undoCastling.KingFrom] = Piece.Empty;
+            layout[undoCastling.RookTo] = layout[undoCastling.RookFrom];
+            layout[undoCastling.RookFrom] = Piece.Empty;
+            return;
         }
+
+        // Uncapture the pawn from EnPassant capture
+        if ((flags & MOVE_FLAGS.EnPassant) != 0)
+        {
+            int capturedPawnSquare = sourcePiece.PC == PIECE_COLOR.BLACK ? move.Target - 8 : move.Target + 8;
+            layout[capturedPawnSquare] = sourcePiece.PC == PIECE_COLOR.BLACK ? WhitePawn : BlackPawn;
+        }
+
+        layout[move.Target] = targetPiece;
+        layout[move.Source] = sourcePiece;
     }
 }

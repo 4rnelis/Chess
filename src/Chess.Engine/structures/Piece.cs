@@ -6,10 +6,18 @@ public enum PIECE_TYPE {PAWN, ROOK, BISHOP, KNIGHT, KING, QUEEN, NONE};
 /// <summary>
 /// This struct represents a playing piece
 /// </summary> 
-public struct Piece(PIECE_COLOR pc, PIECE_TYPE pt)
+public readonly struct Piece
 {
-    public PIECE_COLOR PC { get; } = pc;
-    public PIECE_TYPE PT { get; } = pt;
+    public readonly PIECE_COLOR PC;
+    public readonly PIECE_TYPE PT;
+
+    public static readonly Piece Empty = new(PIECE_COLOR.NONE, PIECE_TYPE.NONE);
+
+    public Piece(PIECE_COLOR pc, PIECE_TYPE pt)
+    {
+        PC = pc;
+        PT = pt;
+    }
 
     public override string ToString()
     {

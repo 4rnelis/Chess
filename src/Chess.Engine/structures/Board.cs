@@ -1,4 +1,5 @@
 using Chess.Engine.Logic;
+using System.Runtime.CompilerServices;
 
 namespace Chess.Engine.Structures;
 
@@ -44,13 +45,9 @@ public sealed class Board
     /// </summary>
     /// <param name="color"></param>
     /// <returns></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static PIECE_COLOR GetOppositeColor(PIECE_COLOR color)
     {
-        if (color == PIECE_COLOR.WHITE)
-        {
-            return PIECE_COLOR.BLACK;
-        } else {
-            return PIECE_COLOR.WHITE;
-        }
+        return color == PIECE_COLOR.WHITE ? PIECE_COLOR.BLACK : PIECE_COLOR.WHITE;
     }
 }
