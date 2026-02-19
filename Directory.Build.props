@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <BaseOutputPath>$(SolutionDir)artifacts/bin/$(MSBuildProjectName)/</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(SolutionDir)artifacts/obj/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
+    <RestorePackagesPath>$(SolutionDir)packages</RestorePackagesPath>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+  </PropertyGroup>
+</Project>
