@@ -4,445 +4,373 @@ namespace Chess.Engine.Logic;
 
 public static class MovesGenerator
 {
+    private const int MaxPieceMoves = 64;
+
+    // Representing the rank and file direction changes for each piece
+    private static readonly int[] BishopDf = [+1, -1, +1, -1];
+    private static readonly int[] BishopDr = [+1, +1, -1, -1];
+    private static readonly int[] RookDf = [+1, -1, 0, 0];
+    private static readonly int[] RookDr = [0, 0, +1, -1];
+    private static readonly int[] QueenDf = [+1, -1, +1, -1, +1, -1, 0, 0];
+    private static readonly int[] QueenDr = [+1, +1, -1, -1, 0, 0, +1, -1];
+    private static readonly int[] KnightMf = [+1, -1, +1, -1, +2, +2, -2, -2];
+    private static readonly int[] KnightMr = [+2, +2, -2, -2, +1, -1, +1, -1];
+    private static readonly int[] KingMf = [-1, -1, -1, 0, 0, +1, +1, +1];
+    private static readonly int[] KingMr = [-1, 0, +1, -1, +1, -1, 0, +1];
+
     /// <summary>
-    /// Maps the moves to a specific piece based on their type
+    /// Get valid moves for a single piece
     /// </summary>
-    /// <param name="position"></param>
-    /// <returns></returns> <summary>
-    /// 
-    /// </summary>
+    /// <param name="board"></param>
     /// <param name="position"></param>
     /// <returns></returns>
     public static List<Move> GetValidMoves(Board board, int position)
     {
+        Span<Move> buffer = stackalloc Move[MaxPieceMoves];
+        int count = GetValidMovesCount(board, position, buffer);
+        return ToList(buffer, count);
+    }
+
+    /// <summary>
+    /// Get the count of possible valid moves
+    /// </summary>
+    /// <param name="board"></param>
+    /// <param name="position"></param>
+    /// <param name="destination"></param>
+    /// <returns></returns>
+    public static int GetValidMovesCount(Board board, int position, Span<Move> destination)
+    {
         Piece piece = board.Layout[position];
-        // Console.WriteLine($"{piece.PC}, {piece.PT}");
-        return piece.PT switch
+        if (piece.PC == PIECE_COLOR.NONE)
+            return 0;
+
+        int count = 0;
+        switch (piece.PT)
         {
-            PIECE_TYPE.PAWN => GetValidMovesPawn(board, position, piece.PC),
-            PIECE_TYPE.BISHOP => GetValidMovesBishop(board, position, piece.PC),
-            PIECE_TYPE.ROOK => GetValidMovesRook(board, position, piece.PC),
-            PIECE_TYPE.KNIGHT => GetValidMovesKnight(board, position, piece.PC),
-            PIECE_TYPE.KING => GetValidMovesKing(board, position, piece.PC),
-            PIECE_TYPE.QUEEN => GetValidMovesQueen(board, position, piece.PC),
-            _ => [],
-        };
+            case PIECE_TYPE.PAWN:
+                AddPawnMoves(board, position, piece.PC, destination, ref count);
+                break;
+            case PIECE_TYPE.BISHOP:
+                AddSlidingMoves(board, position, piece.PC, BishopDf, BishopDr, destination, ref count);
+                break;
+            case PIECE_TYPE.ROOK:
+                AddSlidingMoves(board, position, piece.PC, RookDf, RookDr, destination, ref count);
+                break;
+            case PIECE_TYPE.KNIGHT:
+                AddKnightMoves(board, position, piece.PC, destination, ref count);
+                break;
+            case PIECE_TYPE.KING:
+                AddKingMoves(board, position, piece.PC, destination, ref count);
+                break;
+            case PIECE_TYPE.QUEEN:
+                AddSlidingMoves(board, position, piece.PC, QueenDf, QueenDr, destination, ref count);
+                break;
+        }
+
+        return count;
     }
 
     public static List<Move> GenerateAllMoves(Board board)
     {
         var moves = new List<Move>(64);
+        Span<Move> buffer = stackalloc Move[MaxPieceMoves];
+        PIECE_COLOR side = board.SideToMove;
 
         for (int sq = 0; sq < 64; sq++)
         {
-            if (board.Layout[sq].PC != board.SideToMove)
+            if (board.Layout[sq].PC != side)
                 continue;
 
-            moves.AddRange(GetValidMoves(board, sq));
+            int count = GetValidMovesCount(board, sq, buffer);
+            for (int i = 0; i < count; i++)
+            {
+                moves.Add(buffer[i]);
+            }
         }
 
         return moves;
     }
 
-
-    /// <summary>
-    /// Pawn move logic implementation.
-    /// TODO: EnPassant and Castling
-    /// </summary>
-    /// <param name="position">The original position of a pawn</param>
-    /// <param name="color">The color of a pawn</param>
-    /// <returns>A list of all valid moves</returns> 
-    public static List<Move> GetValidMovesPawn(Board board, int position, PIECE_COLOR color)
+    private static void AddPawnMoves(Board board, int position, PIECE_COLOR color, Span<Move> destination, ref int count)
     {
-        List<Move> moves = [];
         int to;
         MOVE_FLAGS flags;
-        switch (color) {
-            case PIECE_COLOR.BLACK:
-                {
-                    // One step forward
-                    to = position+8;
-                    if ((uint)to < 64 && board.Layout[to].PT == PIECE_TYPE.NONE)
-                    {
-                        // Check for promotion
-                        if ((to >> 3) == 7)
-                        {
-                            moves.Add(new Move(position, to,  MOVE_FLAGS.Promotion, PIECE_TYPE.QUEEN));
-                            moves.Add(new Move(position, to,  MOVE_FLAGS.Promotion, PIECE_TYPE.ROOK));
-                            moves.Add(new Move(position, to,  MOVE_FLAGS.Promotion, PIECE_TYPE.BISHOP));
-                            moves.Add(new Move(position, to,  MOVE_FLAGS.Promotion, PIECE_TYPE.KNIGHT));
-                        } else {
-                            moves.Add(new Move(position, to, MOVE_FLAGS.None));
-                            // Check if double push possible
-                            to = position+16;
-                            if ((uint)to < 64 && (position >> 3) == 1 && board.Layout[to].PT == PIECE_TYPE.NONE)
-                            {
-                                // // Console.WriteLine("[MOVE GENERATOR] DOUBLE PUSH POSSIBLE");
-                                moves.Add(new Move(position, to, MOVE_FLAGS.DoublePawnPush));
-                            }
-                        }   
-                    }
-                    // Capture left
-                    to = position+9;
-                    if ((uint)to < 64 && (position & 7) != 7 && (board.Layout[to].PC == PIECE_COLOR.WHITE || to == board.EnPassantSq))
-                    {
-                        flags = MOVE_FLAGS.Capture;
-                        if (to == board.EnPassantSq)
-                        {
-                            flags |= MOVE_FLAGS.EnPassant;
-                        }
-                        if ((to >> 3) == 7)
-                        {
-                            flags |= MOVE_FLAGS.Promotion;
-                            moves.Add(new Move(position, to, flags, PIECE_TYPE.QUEEN));
-                            moves.Add(new Move(position, to, flags, PIECE_TYPE.ROOK));
-                            moves.Add(new Move(position, to, flags, PIECE_TYPE.BISHOP));
-                            moves.Add(new Move(position, to, flags, PIECE_TYPE.KNIGHT));
-                        } else {
-                            moves.Add(new Move(position, to, flags));
-                        }
-                    }
-                    // Capture right
-                    to = position+7;
-                    if ((uint)to < 64 && (position & 7) != 0 && (board.Layout[to].PC == PIECE_COLOR.WHITE || to == board.EnPassantSq))
-                    {
-                        flags = MOVE_FLAGS.Capture;
-                        if (to == board.EnPassantSq)
-                        {
-                            flags |= MOVE_FLAGS.EnPassant;
-                        }
-                        if ((to >> 3) == 7)
-                        {
-                            flags |= MOVE_FLAGS.Promotion;
-                            moves.Add(new Move(position, to, flags, PIECE_TYPE.QUEEN));
-                            moves.Add(new Move(position, to, flags, PIECE_TYPE.ROOK));
-                            moves.Add(new Move(position, to, flags, PIECE_TYPE.BISHOP));
-                            moves.Add(new Move(position, to, flags, PIECE_TYPE.KNIGHT));
-                        } else {
-                            moves.Add(new Move(position, to, flags));
-                        }
-                    }
 
-                    return moves;
-                }
-            case PIECE_COLOR.WHITE:
-                {
-                    // One step forward
-                    to = position-8;
-                    if ((uint)to < 64 && board.Layout[to].PT == PIECE_TYPE.NONE)
-                    {
-                        // Check for promotion
-                        if ((to >> 3) == 0)
-                        {
-                            moves.Add(new Move(position, to,  MOVE_FLAGS.Promotion, PIECE_TYPE.QUEEN));
-                            moves.Add(new Move(position, to,  MOVE_FLAGS.Promotion, PIECE_TYPE.ROOK));
-                            moves.Add(new Move(position, to,  MOVE_FLAGS.Promotion, PIECE_TYPE.BISHOP));
-                            moves.Add(new Move(position, to,  MOVE_FLAGS.Promotion, PIECE_TYPE.KNIGHT));
-                        } else {
-                            moves.Add(new Move(position, to, MOVE_FLAGS.None));
-                            // Check if double push possible
-                            to = position-16;
-                            if ((uint)to < 64 && (position >> 3) == 6 && board.Layout[to].PT == PIECE_TYPE.NONE)
-                            {
-                                moves.Add(new Move(position, to, MOVE_FLAGS.DoublePawnPush));
-                            }
-                        }   
-                    }
-                    // Capture left
-                    to = position-9;
-                    if ((uint)to < 64 && (position & 7) != 0 && (board.Layout[to].PC == PIECE_COLOR.BLACK || to == board.EnPassantSq))
-                    {
-                        flags = MOVE_FLAGS.Capture;
-                        if (to == board.EnPassantSq)
-                        {
-                            flags |= MOVE_FLAGS.EnPassant;
-                        }
-                        if ((to >> 3) == 0)
-                        {
-                            flags |= MOVE_FLAGS.Promotion;
-                            moves.Add(new Move(position, to, flags, PIECE_TYPE.QUEEN));
-                            moves.Add(new Move(position, to, flags, PIECE_TYPE.ROOK));
-                            moves.Add(new Move(position, to, flags, PIECE_TYPE.BISHOP));
-                            moves.Add(new Move(position, to, flags, PIECE_TYPE.KNIGHT));
-                        } else {
-                            moves.Add(new Move(position, to, flags));
-                        }
-                    }
-                    // Capture right
-                    to = position-7;
-                    if ((uint)to < 64 && (position & 7) != 7 && (board.Layout[to].PC == PIECE_COLOR.BLACK || to == board.EnPassantSq))
-                    {
-                        flags = MOVE_FLAGS.Capture;
-                        if (to == board.EnPassantSq)
-                        {
-                            flags |= MOVE_FLAGS.EnPassant;
-                        }
-                        if ((to >> 3) == 0)
-                        {
-                            flags |= MOVE_FLAGS.Promotion;
-                            moves.Add(new Move(position, to, flags, PIECE_TYPE.QUEEN));
-                            moves.Add(new Move(position, to, flags, PIECE_TYPE.ROOK));
-                            moves.Add(new Move(position, to, flags, PIECE_TYPE.BISHOP));
-                            moves.Add(new Move(position, to, flags, PIECE_TYPE.KNIGHT));
-                        } else {
-                            moves.Add(new Move(position, to, flags));
-                        }
-                    }
-                    return moves;
-                }
-            default:
-                return [];
-        };
-    }
-
-    /// <summary>
-    /// Bishop move logic implementation
-    /// </summary>
-    /// <param name="position">The original position of a bishop</param>
-    /// <param name="color">The color of a bishop</param>
-    /// <returns>A list of all valid moves</returns>
-    public static List<Move> GetValidMovesBishop(Board board, int position, PIECE_COLOR color)
-    {
-        return SlidingMovesGeneralized(board, position, color, [+1, -1, +1, -1], [+1, +1, -1, -1]);
-    }
-
-    /// <summary>
-    /// Rook move logic implementation
-    /// </summary>
-    /// <param name="position">The original position of a rook</param>
-    /// <param name="color">The color of a rook</param>
-    /// <returns>A list of all valid moves</returns>
-    public static List<Move> GetValidMovesRook(Board board, int position, PIECE_COLOR color)
-    {
-        List<Move> moves = SlidingMovesGeneralized(board, position, color, [+1, -1, 0, 0], [0, 0, +1, -1]);
-        moves.AddRange(CastlingMoves(board, position, color));
-        return moves;
-    }
-
-    public static List<Move> GetValidMovesKnight(Board board, int position, PIECE_COLOR color)
-    {
-        List<Move> moves = [];
-        // Source file
-        int sf = position & 7;
-        // Source rank
-        int sr = position >> 3;
-        int f, r, tp;
-        Piece target;
-
-        int[] mf = [+1, -1, +1, -1, +2, +2, -2, -2];
-        int[] mr = [+2, +2, -2, -2, +1, -1, +1, -1];
-
-        // Check every move
-        for (int mv = 0; mv < 8; mv++)
+        if (color == PIECE_COLOR.BLACK)
         {
-            f = sf + mf[mv];
-            r = sr + mr[mv];
-
-            if ((uint)f < 8 && (uint)r < 8) {
-                tp = r*8+f;
-                target = board.Layout[tp];
-                if (target.PC != color)
+            to = position + 8;
+            if ((uint)to < 64 && board.Layout[to].PT == PIECE_TYPE.NONE)
+            {
+                if ((to >> 3) == 7)
                 {
-                    if (target.PC == Board.GetOppositeColor(color)) {
-                        moves.Add(new Move(position, tp, MOVE_FLAGS.Capture));
-                    } else {
-                        moves.Add(new Move(position, tp, MOVE_FLAGS.None));
+                    AddPromotionMoves(position, to, MOVE_FLAGS.Promotion, destination, ref count);
+                }
+                else
+                {
+                    AddMove(destination, ref count, new Move(position, to, MOVE_FLAGS.None));
+                    to = position + 16;
+                    if ((uint)to < 64 && (position >> 3) == 1 && board.Layout[to].PT == PIECE_TYPE.NONE)
+                    {
+                        AddMove(destination, ref count, new Move(position, to, MOVE_FLAGS.DoublePawnPush));
                     }
-                } 
+                }
+            }
+
+            to = position + 9;
+            if ((uint)to < 64 && (position & 7) != 7 && (board.Layout[to].PC == PIECE_COLOR.WHITE || to == board.EnPassantSq))
+            {
+                flags = MOVE_FLAGS.Capture;
+                if (to == board.EnPassantSq)
+                    flags |= MOVE_FLAGS.EnPassant;
+
+                if ((to >> 3) == 7)
+                {
+                    AddPromotionMoves(position, to, flags | MOVE_FLAGS.Promotion, destination, ref count);
+                }
+                else
+                {
+                    AddMove(destination, ref count, new Move(position, to, flags));
+                }
+            }
+
+            to = position + 7;
+            if ((uint)to < 64 && (position & 7) != 0 && (board.Layout[to].PC == PIECE_COLOR.WHITE || to == board.EnPassantSq))
+            {
+                flags = MOVE_FLAGS.Capture;
+                if (to == board.EnPassantSq)
+                    flags |= MOVE_FLAGS.EnPassant;
+
+                if ((to >> 3) == 7)
+                {
+                    AddPromotionMoves(position, to, flags | MOVE_FLAGS.Promotion, destination, ref count);
+                }
+                else
+                {
+                    AddMove(destination, ref count, new Move(position, to, flags));
+                }
+            }
+
+            return;
+        }
+
+        if (color == PIECE_COLOR.WHITE)
+        {
+            to = position - 8;
+            if ((uint)to < 64 && board.Layout[to].PT == PIECE_TYPE.NONE)
+            {
+                if ((to >> 3) == 0)
+                {
+                    AddPromotionMoves(position, to, MOVE_FLAGS.Promotion, destination, ref count);
+                }
+                else
+                {
+                    AddMove(destination, ref count, new Move(position, to, MOVE_FLAGS.None));
+                    to = position - 16;
+                    if ((uint)to < 64 && (position >> 3) == 6 && board.Layout[to].PT == PIECE_TYPE.NONE)
+                    {
+                        AddMove(destination, ref count, new Move(position, to, MOVE_FLAGS.DoublePawnPush));
+                    }
+                }
+            }
+
+            to = position - 9;
+            if ((uint)to < 64 && (position & 7) != 0 && (board.Layout[to].PC == PIECE_COLOR.BLACK || to == board.EnPassantSq))
+            {
+                flags = MOVE_FLAGS.Capture;
+                if (to == board.EnPassantSq)
+                    flags |= MOVE_FLAGS.EnPassant;
+
+                if ((to >> 3) == 0)
+                {
+                    AddPromotionMoves(position, to, flags | MOVE_FLAGS.Promotion, destination, ref count);
+                }
+                else
+                {
+                    AddMove(destination, ref count, new Move(position, to, flags));
+                }
+            }
+
+            to = position - 7;
+            if ((uint)to < 64 && (position & 7) != 7 && (board.Layout[to].PC == PIECE_COLOR.BLACK || to == board.EnPassantSq))
+            {
+                flags = MOVE_FLAGS.Capture;
+                if (to == board.EnPassantSq)
+                    flags |= MOVE_FLAGS.EnPassant;
+
+                if ((to >> 3) == 0)
+                {
+                    AddPromotionMoves(position, to, flags | MOVE_FLAGS.Promotion, destination, ref count);
+                }
+                else
+                {
+                    AddMove(destination, ref count, new Move(position, to, flags));
+                }
             }
         }
-        return moves;
     }
 
-    /// <summary>
-    /// King move logic implementation
-    /// </summary>
-    /// <param name="position"></param>
-    /// <param name="color"></param>
-    /// <returns></returns>
-    public static List<Move> GetValidMovesKing(Board board, int position, PIECE_COLOR color)
+    private static void AddKnightMoves(Board board, int position, PIECE_COLOR color, Span<Move> destination, ref int count)
     {
-        List<Move> moves = [];
-        // Source file
         int sf = position & 7;
-        // Source rank
         int sr = position >> 3;
-        int f, r, tp;
-        Piece target;
-
-        int[] mf = [-1, -1, -1, 0, 0, +1, +1, +1];
-        int[] mr = [-1, 0, +1, -1, +1, -1, 0, +1];
+        PIECE_COLOR opposite = Board.GetOppositeColor(color);
 
         for (int mv = 0; mv < 8; mv++)
         {
-            f = sf + mf[mv];
-            r = sr + mr[mv];
+            int f = sf + KnightMf[mv];
+            int r = sr + KnightMr[mv];
+            if ((uint)f >= 8 || (uint)r >= 8)
+                continue;
 
-            if ((uint)f < 8 && (uint)r < 8) {
-                tp = r*8+f;
+            int targetSquare = r * 8 + f;
+            Piece target = board.Layout[targetSquare];
+            if (target.PC == color)
+                continue;
 
-
-                target = board.Layout[tp];
-                if (target.PC != color)
-                {
-                    if (target.PC == Board.GetOppositeColor(color)) {
-                        moves.Add(new Move(position, tp, MOVE_FLAGS.Capture));
-                    } else {
-                        moves.Add(new Move(position, tp, MOVE_FLAGS.None));
-                    }
-                } 
-
-            }
+            AddMove(destination, ref count, target.PC == opposite
+                ? new Move(position, targetSquare, MOVE_FLAGS.Capture)
+                : new Move(position, targetSquare, MOVE_FLAGS.None));
         }
-        moves.AddRange(CastlingMoves(board, position, color));
-
-        return moves;
     }
 
-    /// <summary>
-    /// Queen move logic implementation. Alternatively: Rook + Bishop movement.
-    /// </summary>
-    /// <param name="position"></param>
-    /// <param name="color"></param>
-    /// <returns></returns> <summary>
-    public static List<Move> GetValidMovesQueen(Board board, int position, PIECE_COLOR color)
+    private static void AddKingMoves(Board board, int position, PIECE_COLOR color, Span<Move> destination, ref int count)
     {
-        return SlidingMovesGeneralized(board, position, color, [+1, -1, +1, -1, +1, -1, 0, 0], [+1, +1, -1, -1, 0, 0, +1, -1]);
-    }
-
-
-    /// <summary>
-    /// Helper method to reuse in the sliding movement type pieces.
-    /// </summary>
-    /// <param name="position"></param>
-    /// <param name="color"></param>
-    /// <param name="df">Direction of file: +1=right, -1=left, 0=stay</param>
-    /// <param name="dr">Direction of rank: +1=down, -1=up, 0=stay</param>
-    /// <returns></returns>
-    public static List<Move> SlidingMovesGeneralized(Board board, int position, PIECE_COLOR color, int[] df, int[] dr)
-    {
-        int length = df.Length;
-
-        List<Move> moves = [];
-        // Source file
         int sf = position & 7;
-        // Source rank
         int sr = position >> 3;
-        int f, r, tp;
-        Piece target;
+        PIECE_COLOR opposite = Board.GetOppositeColor(color);
 
-        // Iterate over each direction
-        for (int dir = 0; dir < length; dir++)
+        for (int mv = 0; mv < 8; mv++)
         {
-            // file/rank = source f/r + a move in a direction
-            f = sf + df[dir];
-            r = sr + dr[dir];
+            int f = sf + KingMf[mv];
+            int r = sr + KingMr[mv];
+            if ((uint)f >= 8 || (uint)r >= 8)
+                continue;
+
+            int targetSquare = r * 8 + f;
+            Piece target = board.Layout[targetSquare];
+            if (target.PC == color)
+                continue;
+
+            AddMove(destination, ref count, target.PC == opposite
+                ? new Move(position, targetSquare, MOVE_FLAGS.Capture)
+                : new Move(position, targetSquare, MOVE_FLAGS.None));
+        }
+
+        AddCastlingMoves(board, position, color, destination, ref count);
+    }
+
+    private static void AddSlidingMoves(Board board, int position, PIECE_COLOR color, int[] df, int[] dr, Span<Move> destination, ref int count)
+    {
+        PIECE_COLOR opposite = Board.GetOppositeColor(color);
+        int sf = position & 7;
+        int sr = position >> 3;
+
+        for (int dir = 0; dir < df.Length; dir++) 
+        {
+            int f = sf + df[dir];
+            int r = sr + dr[dir];
 
             while ((uint)f < 8 && (uint)r < 8)
             {
-                tp = r*8+f;
-                target = board.Layout[tp];
+                int targetSquare = r * 8 + f;
+                Piece target = board.Layout[targetSquare];
                 if (target.PC != PIECE_COLOR.NONE)
                 {
-                    if (target.PC == Board.GetOppositeColor(color))
+                    if (target.PC == opposite)
                     {
-                        moves.Add(new Move(position, tp, MOVE_FLAGS.Capture));
+                        AddMove(destination, ref count, new Move(position, targetSquare, MOVE_FLAGS.Capture));
                     }
                     break;
-                } else {
-                    moves.Add(new Move(position, tp, MOVE_FLAGS.None));
                 }
 
+                AddMove(destination, ref count, new Move(position, targetSquare, MOVE_FLAGS.None));
                 f += df[dir];
                 r += dr[dir];
-            } 
+            }
         }
-        return moves;
     }
 
-    /// <summary>
-    /// Checks if castling move is valid for Rook and King
-    /// </summary>
-    /// <param name="board"></param>
-    /// <param name="position"></param>
-    /// <param name="target"></param>
-    /// <param name="color"></param>
-    /// <returns></returns> 
-    public static List<Move> CastlingMoves(Board board, int position, PIECE_COLOR color)
+    private static void AddCastlingMoves(Board board, int position, PIECE_COLOR color, Span<Move> destination, ref int count)
     {
-        List<Move> moves = [];
         PIECE_TYPE pt = board.Layout[position].PT;
+        if (pt != PIECE_TYPE.KING)
+            return;
 
-        switch (color)
+        if (color == PIECE_COLOR.BLACK)
         {
-            case PIECE_COLOR.BLACK:
-                // Check the flag
-                if ((board.CastlingRights & Castling.BlackQueenSide) != 0)
-                {
-                    // Checks if the path is empty and not under direct threat
-                    if ((board.Layout[1].PT == PIECE_TYPE.NONE) && (board.Layout[2].PT == PIECE_TYPE.NONE) && (board.Layout[3].PT == PIECE_TYPE.NONE) &&
-                        !(ThreatenedChecker.IsThreatened(board, 4, PIECE_COLOR.BLACK) || ThreatenedChecker.IsThreatened(board, 2, PIECE_COLOR.BLACK) || ThreatenedChecker.IsThreatened(board, 3, PIECE_COLOR.BLACK)))
-                    {
-                        // Assigns the move either to the king or to the rook
-                        if (pt == PIECE_TYPE.KING)
-                        {
-                            moves.Add(new Move(4, 0, MOVE_FLAGS.Castling));
-                        }
-                        // if (pt == PIECE_TYPE.ROOK)
-                        // {
-                        //     moves.Add(new Move(0, 4, MOVE_FLAGS.Castling));
-                        // }
-                    }        
-                }
-                if ((board.CastlingRights & Castling.BlackKingSide) != 0)
-                {
-                    if ((board.Layout[5].PT == PIECE_TYPE.NONE) && (board.Layout[6].PT == PIECE_TYPE.NONE) &&
-                        !(ThreatenedChecker.IsThreatened(board, 4, PIECE_COLOR.BLACK) || ThreatenedChecker.IsThreatened(board, 5, PIECE_COLOR.BLACK) || ThreatenedChecker.IsThreatened(board, 6, PIECE_COLOR.BLACK)))
-                    {
-                        if (pt == PIECE_TYPE.KING)
-                        {
-                            moves.Add(new Move(4, 7, MOVE_FLAGS.Castling));
-                        }
-                        // if (pt == PIECE_TYPE.ROOK)
-                        // {
-                        //     moves.Add(new Move(7, 4, MOVE_FLAGS.Castling));
-                        // }
-                    }
-                }
-                return moves;
-            case PIECE_COLOR.WHITE:
-                if ((board.CastlingRights & Castling.WhiteQueenSide) != 0)
-                {
-                    if ((board.Layout[57].PT == PIECE_TYPE.NONE) && (board.Layout[58].PT == PIECE_TYPE.NONE) && (board.Layout[59].PT == PIECE_TYPE.NONE) &&
-                        !(ThreatenedChecker.IsThreatened(board, 60, PIECE_COLOR.WHITE) || ThreatenedChecker.IsThreatened(board, 58, PIECE_COLOR.WHITE) || ThreatenedChecker.IsThreatened(board, 59, PIECE_COLOR.WHITE)))
-                    {
-                        if (pt == PIECE_TYPE.KING)
-                        {
-                            moves.Add(new Move(60, 56, MOVE_FLAGS.Castling));
-                        }
-                        // if (pt == PIECE_TYPE.ROOK)
-                        // {
-                        //     moves.Add(new Move(56, 60, MOVE_FLAGS.Castling));
-                        // }
-                    }
-                }
-                if ((board.CastlingRights & Castling.WhiteKingSide) != 0)
-                {
-                    if ((board.Layout[61].PT == PIECE_TYPE.NONE) && (board.Layout[62].PT == PIECE_TYPE.NONE) &&
-                        !(ThreatenedChecker.IsThreatened(board, 60, PIECE_COLOR.WHITE) || ThreatenedChecker.IsThreatened(board, 61, PIECE_COLOR.WHITE) || ThreatenedChecker.IsThreatened(board, 62, PIECE_COLOR.WHITE)))
-                    {
-                        if (pt == PIECE_TYPE.KING)
-                        {
-                            moves.Add(new Move(60, 63, MOVE_FLAGS.Castling));
-                        }
-                        // if (pt == PIECE_TYPE.ROOK)
-                        // {
-                        //     moves.Add(new Move(63, 60, MOVE_FLAGS.Castling));
-                        // }
-                    }
-                }
-                return moves;
+            bool startSafe = !ThreatenedChecker.IsThreatened(board, 4, PIECE_COLOR.BLACK);
+            if ((board.CastlingRights & Castling.BlackQueenSide) != 0 &&
+                board.Layout[1].PT == PIECE_TYPE.NONE &&
+                board.Layout[2].PT == PIECE_TYPE.NONE &&
+                board.Layout[3].PT == PIECE_TYPE.NONE &&
+                startSafe &&
+                !ThreatenedChecker.IsThreatened(board, 2, PIECE_COLOR.BLACK) &&
+                !ThreatenedChecker.IsThreatened(board, 3, PIECE_COLOR.BLACK))
+            {
+                AddMove(destination, ref count, new Move(4, 0, MOVE_FLAGS.Castling));
+            }
+
+            if ((board.CastlingRights & Castling.BlackKingSide) != 0 &&
+                board.Layout[5].PT == PIECE_TYPE.NONE &&
+                board.Layout[6].PT == PIECE_TYPE.NONE &&
+                startSafe &&
+                !ThreatenedChecker.IsThreatened(board, 5, PIECE_COLOR.BLACK) &&
+                !ThreatenedChecker.IsThreatened(board, 6, PIECE_COLOR.BLACK))
+            {
+                AddMove(destination, ref count, new Move(4, 7, MOVE_FLAGS.Castling));
+            }
+            return;
         }
-        return [];
+
+        if (color == PIECE_COLOR.WHITE)
+        {
+            bool startSafe = !ThreatenedChecker.IsThreatened(board, 60, PIECE_COLOR.WHITE);
+            if ((board.CastlingRights & Castling.WhiteQueenSide) != 0 &&
+                board.Layout[57].PT == PIECE_TYPE.NONE &&
+                board.Layout[58].PT == PIECE_TYPE.NONE &&
+                board.Layout[59].PT == PIECE_TYPE.NONE &&
+                startSafe &&
+                !ThreatenedChecker.IsThreatened(board, 58, PIECE_COLOR.WHITE) &&
+                !ThreatenedChecker.IsThreatened(board, 59, PIECE_COLOR.WHITE))
+            {
+                AddMove(destination, ref count, new Move(60, 56, MOVE_FLAGS.Castling));
+            }
+
+            if ((board.CastlingRights & Castling.WhiteKingSide) != 0 &&
+                board.Layout[61].PT == PIECE_TYPE.NONE &&
+                board.Layout[62].PT == PIECE_TYPE.NONE &&
+                startSafe &&
+                !ThreatenedChecker.IsThreatened(board, 61, PIECE_COLOR.WHITE) &&
+                !ThreatenedChecker.IsThreatened(board, 62, PIECE_COLOR.WHITE))
+            {
+                AddMove(destination, ref count, new Move(60, 63, MOVE_FLAGS.Castling));
+            }
+        }
+    }
+
+    private static void AddPromotionMoves(int source, int target, MOVE_FLAGS flags, Span<Move> destination, ref int count)
+    {
+        AddMove(destination, ref count, new Move(source, target, flags, PIECE_TYPE.QUEEN));
+        AddMove(destination, ref count, new Move(source, target, flags, PIECE_TYPE.ROOK));
+        AddMove(destination, ref count, new Move(source, target, flags, PIECE_TYPE.BISHOP));
+        AddMove(destination, ref count, new Move(source, target, flags, PIECE_TYPE.KNIGHT));
+    }
+
+    private static void AddMove(Span<Move> destination, ref int count, Move move)
+    {
+        if ((uint)count >= (uint)destination.Length)
+            throw new InvalidOperationException("Move buffer is too small for generated moves.");
+
+        destination[count++] = move;
+    }
+
+    private static List<Move> ToList(Span<Move> source, int count)
+    {
+        var moves = new List<Move>(count);
+        for (int i = 0; i < count; i++)
+        {
+            moves.Add(source[i]);
+        }
+        return moves;
     }
 }

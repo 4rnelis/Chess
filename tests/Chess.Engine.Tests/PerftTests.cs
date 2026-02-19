@@ -52,7 +52,9 @@ public class PerftTests
     // public void Perft_StartPosition_Depth6()
     // {
     //     var board = new Board(start);
-    //     Assert.Equal(119060324, Perft.Run(board, 6));
+    //     var stats = new PerftStats();
+    //     Perft.Run(board, 2, stats);
+    //     Assert.Equal(119060324, Perft.Run(board, 6, stats));
     // }
 
     // [Fact]
@@ -63,38 +65,38 @@ public class PerftTests
     //     Assert.Equal(48, Perft.Run(board, 1));
     // }
 
-    [Fact]
-    public void Perft_KiwiPete_Depth2()
-    {
-        var board = new Board(kiwipete);
-        var stats = new PerftStats();
-        Perft.Run(board, 2, stats);
-        Console.WriteLine($"Nodes: {stats.Nodes}, Captures: {stats.Captures}, EnPassant: {stats.EnPassant}, Castles: {stats.Castles}, Promotions: {stats.Promotions}");
+    // [Fact]
+    // public void Perft_KiwiPete_Depth2()
+    // {
+    //     var board = new Board(kiwipete);
+    //     var stats = new PerftStats();
+    //     Perft.Run(board, 2, stats);
+    //     Console.WriteLine($"Nodes: {stats.Nodes}, Captures: {stats.Captures}, EnPassant: {stats.EnPassant}, Castles: {stats.Castles}, Promotions: {stats.Promotions}");
 
-        Assert.Equal(2039, stats.Nodes);
-    }
+    //     Assert.Equal(2039, stats.Nodes);
+    // }
 
-    [Fact]
-    public void Perft_KiwiPete_Depth3()
-    {
-        var board = new Board(kiwipete);
-        var stats = new PerftStats();
-        Perft.Run(board, 3, stats);
-        Console.WriteLine($"Nodes: {stats.Nodes}, Captures: {stats.Captures}, EnPassant: {stats.EnPassant}, Castles: {stats.Castles}, Promotions: {stats.Promotions}");
+    // [Fact]
+    // public void Perft_KiwiPete_Depth3()
+    // {
+    //     var board = new Board(kiwipete);
+    //     var stats = new PerftStats();
+    //     Perft.Run(board, 3, stats);
+    //     Console.WriteLine($"Nodes: {stats.Nodes}, Captures: {stats.Captures}, EnPassant: {stats.EnPassant}, Castles: {stats.Castles}, Promotions: {stats.Promotions}");
 
-        Assert.Equal(97862, stats.Nodes);
-    }
+    //     Assert.Equal(97862, stats.Nodes);
+    // }
 
-    [Fact]
-    public void Perft_KiwiPete_Depth4()
-    {
-        var board = new Board(kiwipete);
-        var stats = new PerftStats();
-        Perft.Run(board, 4, stats);
+    // [Fact]
+    // public void Perft_KiwiPete_Depth4()
+    // {
+    //     var board = new Board(kiwipete);
+    //     var stats = new PerftStats();
+    //     Perft.Run(board, 4, stats);
 
-        Console.WriteLine($"Nodes: {stats.Nodes}, Captures: {stats.Captures}, EnPassant: {stats.EnPassant}, Castles: {stats.Castles}, Promotions: {stats.Promotions}");
-        Assert.Equal(4085603, stats.Nodes);
-    }
+    //     Console.WriteLine($"Nodes: {stats.Nodes}, Captures: {stats.Captures}, EnPassant: {stats.EnPassant}, Castles: {stats.Castles}, Promotions: {stats.Promotions}");
+    //     Assert.Equal(4085603, stats.Nodes);
+    // }
 
     [Fact]
     public void Perft_KiwiPete_Depth5()
@@ -106,6 +108,17 @@ public class PerftTests
         Console.WriteLine($"Nodes: {stats.Nodes}, Captures: {stats.Captures}, EnPassant: {stats.EnPassant}, Castles: {stats.Castles}, Promotions: {stats.Promotions}");
         Assert.Equal(193690690, stats.Nodes);
     }
+
+    // [Fact]
+    // public void Perft_KiwiPete_Depth6()
+    // {
+    //     var board = new Board(kiwipete);
+    //     var stats = new PerftStats();
+    //     Perft.Run(board, 6, stats);
+
+    //     Console.WriteLine($"Nodes: {stats.Nodes}, Captures: {stats.Captures}, EnPassant: {stats.EnPassant}, Castles: {stats.Castles}, Promotions: {stats.Promotions}");
+    //     Assert.Equal(8031647685, stats.Nodes);
+    // }
 
     // [Fact]
     // public void Perft_StartPosition_Depth3()

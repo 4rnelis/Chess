@@ -12,12 +12,12 @@ public enum MOVE_FLAGS
     DoublePawnPush = 1 << 4
 }
 
-public class Move
+public readonly struct Move
 {
-    public int Source { get; }
-    public int Target { get; }
-    public MOVE_FLAGS Flags { get; }
-    public PIECE_TYPE Promotion { get; }
+    public readonly int Source;
+    public readonly int Target;
+    public readonly MOVE_FLAGS Flags;
+    public readonly PIECE_TYPE Promotion;
 
     public Move(int source, int target, MOVE_FLAGS flags)
     {

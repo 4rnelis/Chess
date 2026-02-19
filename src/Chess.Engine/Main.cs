@@ -24,7 +24,7 @@ while (true)
         continue;
     }
     Console.WriteLine(move);
-    UndoState? undoState = MoveMaker.MakeMove(board, move);
+    UndoState? undoState = MoveMaker.MakeMove(board, move.Value);
     // Format.PrintBoard(board.Layout);
     // if (undoState.HasValue) {
     //     MoveMaker.UndoMove(board, move, undoState.Value);
