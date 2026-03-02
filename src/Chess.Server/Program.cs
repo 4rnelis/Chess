@@ -52,3 +52,5 @@ app.MapGet("/signalr/signalr.min.js", async (HttpContext context, IWebHostEnviro
 app.MapHub<ChessHub>("/hubs/chess");
 
 app.Run();
+
+public partial class Program;
