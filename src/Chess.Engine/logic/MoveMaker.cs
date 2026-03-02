@@ -112,6 +112,8 @@ internal static class MoveMaker
         PIECE_COLOR prevSide = board.SideToMove;
         Castling prevCastling = board.CastlingRights;
         int prevEnPassant = board.EnPassantSq;
+        int prevHalfMoveClock = board.HalfMoveClock;
+        int prevFullMoveNumber = board.FullMoveNumber;
         int prevKingBlack = board.KingPosition[0];
         int prevKingWhite = board.KingPosition[1];
 
@@ -121,12 +123,18 @@ internal static class MoveMaker
         // 4. Check if king is threatened. Should add King square caching
         if (ThreatenedChecker.IsThreatened(board, board.KingPosition[(int)color], color))
         {
-            UndoMoveFast(board, move, prevSource, prevTarget, prevSide, prevCastling, prevEnPassant, prevKingBlack, prevKingWhite, undoCastling);
+            UndoMoveFast(board, move, prevSource, prevTarget, prevSide, prevCastling, prevEnPassant, prevHalfMoveClock, prevFullMoveNumber, prevKingBlack, prevKingWhite, undoCastling);
             return null;
         }
 
+        // Check if capture or pawn move for halfmove clock
+        bool isCapture = capturedType != PIECE_TYPE.NONE || (move.Flags & MOVE_FLAGS.EnPassant) != 0;
+        board.HalfMoveClock = (type == PIECE_TYPE.PAWN || isCapture) ? 0 : prevHalfMoveClock + 1;
+        // Update full move clock
+        board.FullMoveNumber = prevSide == PIECE_COLOR.BLACK ? prevFullMoveNumber + 1 : prevFullMoveNumber;
+
         // 5. Create full undo state only for legal moves
-        UndoState undoState = new(prevSource, prevTarget, prevSide, prevCastling, prevEnPassant, prevKingBlack, prevKingWhite)
+        UndoState undoState = new(prevSource, prevTarget, prevSide, prevCastling, prevEnPassant, prevHalfMoveClock, prevFullMoveNumber, prevKingBlack, prevKingWhite)
         {
             CastlingUndo = undoCastling
         };
@@ -158,11 +166,13 @@ internal static class MoveMaker
         PIECE_COLOR prevSide,
         Castling prevCastling,
         int prevEnPassant,
+        int prevHalfMoveClock,
+        int prevFullMoveNumber,
         int prevKingBlack,
         int prevKingWhite,
         CastlingUndo undoCastling)
     {
-        RestoreBoardState(board, move, prevSource, prevTarget, prevSide, prevCastling, prevEnPassant, prevKingBlack, prevKingWhite, undoCastling);
+        RestoreBoardState(board, move, prevSource, prevTarget, prevSide, prevCastling, prevEnPassant, prevHalfMoveClock, prevFullMoveNumber, prevKingBlack, prevKingWhite, undoCastling);
     }
 
     internal static void UndoMove(Board board, Move move, UndoState undoState)
@@ -175,6 +185,8 @@ internal static class MoveMaker
             undoState.SideToMove,
             undoState.PrevCastlingRights,
             undoState.PrevEnPassant,
+            undoState.PrevHalfMoveClock,
+            undoState.PrevFullMoveNumber,
             undoState.PrevKingBlack,
             undoState.PrevKingWhite,
             undoState.CastlingUndo);
@@ -368,12 +380,16 @@ internal static class MoveMaker
         PIECE_COLOR sideToMove,
         Castling castlingRights,
         int enPassantSq,
+        int halfMoveClock,
+        int fullMoveNumber,
         int prevKingBlack,
         int prevKingWhite,
         CastlingUndo undoCastling)
     {
         board.CastlingRights = castlingRights;
         board.EnPassantSq = enPassantSq;
+        board.HalfMoveClock = halfMoveClock;
+        board.FullMoveNumber = fullMoveNumber;
         board.KingPosition[0] = prevKingBlack;
         board.KingPosition[1] = prevKingWhite;
         board.SideToMove = sideToMove;

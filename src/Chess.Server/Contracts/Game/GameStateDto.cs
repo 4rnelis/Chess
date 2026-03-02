@@ -1,5 +1,8 @@
 namespace Chess.Server.Contracts;
 
+/// <summary>
+/// Represents the data transfer object for the current state of a game.
+/// </summary> 
 public sealed class GameStateDto
 {
     public required string GameId { get; init; }

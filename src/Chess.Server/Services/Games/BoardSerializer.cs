@@ -1,6 +1,6 @@
 using Chess.Engine.Structures;
 
-namespace Chess.Server;
+namespace Chess.Server.Services.Games;
 
 public static class BoardSerializer
 {

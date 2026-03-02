@@ -1,4 +1,6 @@
 using Chess.Server.Contracts;
+// using Chess.Server.Models;
+using Chess.Server.Services.Games;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Chess.Server.Hubs;

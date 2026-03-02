@@ -6,6 +6,8 @@ public struct UndoState(
     PIECE_COLOR sideToMove,
     Castling castlingRights,
     int enPassant,
+    int prevHalfMoveClock,
+    int prevFullMoveNumber,
     int prevKingBlack,
     int prevKingWhite,
     CastlingUndo castlingUndo = default)
@@ -15,13 +17,15 @@ public struct UndoState(
     public readonly PIECE_COLOR SideToMove = sideToMove;
     public readonly Castling PrevCastlingRights = castlingRights;
     public readonly int PrevEnPassant = enPassant;
+    public readonly int PrevHalfMoveClock = prevHalfMoveClock;
+    public readonly int PrevFullMoveNumber = prevFullMoveNumber;
     public CastlingUndo CastlingUndo = castlingUndo;
     public readonly int PrevKingBlack = prevKingBlack;
     public readonly int PrevKingWhite = prevKingWhite;
 
-    public override string ToString()
+    public override readonly string ToString()
     {
-        return $"Source: {Source}, Target: {Target}, SideToMove: {SideToMove}, PrevCastlingRights: {PrevCastlingRights}, PrevEnPassant: {PrevEnPassant}, PrevKingPosition: [{PrevKingBlack}, {PrevKingWhite}]";
+        return $"Source: {Source}, Target: {Target}, SideToMove: {SideToMove}, PrevCastlingRights: {PrevCastlingRights}, PrevEnPassant: {PrevEnPassant}, PrevHalfMoveClock: {PrevHalfMoveClock}, PrevFullMoveNumber: {PrevFullMoveNumber}, PrevKingPosition: [{PrevKingBlack}, {PrevKingWhite}]";
     }
 }
 

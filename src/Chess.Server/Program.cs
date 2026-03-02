@@ -1,4 +1,4 @@
-using Chess.Server;
+using Chess.Server.Services.Games;
 using Chess.Server.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);

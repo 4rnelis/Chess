@@ -66,6 +66,24 @@ public sealed class Board
     public Board(Piece[] layout)
     {
         Layout = layout;
+        RefreshKingPositions();
+    }
+
+        public static Board FromFen(string fen)
+    {
+        return FromFenState(Format.ParseFEN(fen));
+    }
+
+    public static Board FromFenState(FenState state)
+    {
+        return new Board(state.Layout)
+        {
+            SideToMove = state.SideToMove,
+            CastlingRights = state.CastlingRights,
+            EnPassantSq = state.EnPassantSquare,
+            HalfMoveClock = state.HalfMoveClock,
+            FullMoveNumber = state.FullMoveNumber
+        };
     }
 
     /// <summary>
@@ -77,5 +95,25 @@ public sealed class Board
     public static PIECE_COLOR GetOppositeColor(PIECE_COLOR color)
     {
         return color == PIECE_COLOR.WHITE ? PIECE_COLOR.BLACK : PIECE_COLOR.WHITE;
+    }
+
+    private void RefreshKingPositions()
+    {
+        for (int i = 0; i < Layout.Length; i++)
+        {
+            if (Layout[i].PT != PIECE_TYPE.KING)
+            {
+                continue;
+            }
+
+            if (Layout[i].PC == PIECE_COLOR.BLACK)
+            {
+                KingPosition[0] = i;
+            }
+            else if (Layout[i].PC == PIECE_COLOR.WHITE)
+            {
+                KingPosition[1] = i;
+            }
+        }
     }
 }

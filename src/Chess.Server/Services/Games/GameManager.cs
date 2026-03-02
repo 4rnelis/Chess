@@ -3,8 +3,9 @@ using Chess.Engine;
 using Chess.Engine.Logic;
 using Chess.Engine.Structures;
 using Chess.Server.Contracts;
+using Chess.Server.Models;
 
-namespace Chess.Server;
+namespace Chess.Server.Services.Games;
 
 public sealed class GameManager
 {

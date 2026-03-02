@@ -1,6 +1,6 @@
 using Chess.Engine.Structures;
 
-namespace Chess.Server;
+namespace Chess.Server.Models;
 
 public sealed class GameSession
 {
