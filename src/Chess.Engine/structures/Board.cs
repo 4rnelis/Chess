@@ -22,6 +22,8 @@ public sealed class Board
     
     // Caching king positions for faster checking
     public int[] KingPosition {get; internal set; } = [4, 60];
+    public int HalfMoveClock { get; internal set; } = 0;
+    public int FullMoveNumber { get; internal set; } = 1;
     public UndoState UndoState {get; internal set; }
 
     // // Acess to modify the board to internal MoveMaker

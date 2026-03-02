@@ -12,7 +12,7 @@ public sealed class GameManager
     private readonly ConcurrentDictionary<string, byte> _waitingSet = new();
     private readonly ConcurrentDictionary<string, GameSession> _games = new();
     private readonly ConcurrentDictionary<string, string> _connectionToGame = new();
-    private readonly object _matchLock = new();
+    private readonly Lock _matchLock = new();
 
     public (GameSession? game, string? youAre, string? opponentId) QueuePlayer(string connectionId)
     {
@@ -30,7 +30,7 @@ public sealed class GameManager
                 }
 
                 var gameId = Guid.NewGuid().ToString("N");
-                var board = new Board(Format.ImportFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"));
+                var board = Format.ImportBoardFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
                 var game = new GameSession
                 {
