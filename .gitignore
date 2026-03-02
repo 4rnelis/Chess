@@ -4,5 +4,6 @@ obj/
 artifacts/
 packages/
 .dotnet/
+.dotnetcli/
 
 output.txt

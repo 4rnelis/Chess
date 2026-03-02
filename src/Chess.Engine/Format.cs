@@ -1,98 +1,72 @@
 using Chess.Engine.Structures;
-using System.Runtime.InteropServices;
 using System.Text.Json;
 
 namespace Chess.Engine;
+
+public readonly record struct FenState(
+    Piece[] Layout,
+    PIECE_COLOR SideToMove,
+    Castling CastlingRights,
+    int EnPassantSquare,
+    int HalfMoveClock,
+    int FullMoveNumber);
 
 public static class Format
 {
     /// <summary>
     /// Converts FEN format to an array of Piece, that is used in internal game logic.
+    /// Accepts both full FEN and board-only FEN.
     /// </summary>
     /// <param name="FEN">FEN as a String</param>
     /// <returns>A filled Piece[] array</returns>
-    public static Piece[] ImportFEN(string FEN) 
+    public static Piece[] ImportFEN(string FEN)
     {
-        Piece[] parsed = new Piece[64];
-        int i = 0;
-        int j = 0;
-        while (i < 64) {
-            char e = FEN[j];
-            switch (e) {
-                case 'r':
-                    parsed[i] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.ROOK);
-                    i++;
-                    j++;
-                    break;
-                case 'n':
-                    parsed[i] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.KNIGHT);
-                    i++;
-                    j++;
-                    break;
-                case 'b':
-                    parsed[i] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.BISHOP);
-                    i++;
-                    j++;
-                    break;
-                case 'q':
-                    parsed[i] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.QUEEN);
-                    i++;
-                    j++;
-                    break;
-                case 'k':
-                    parsed[i] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.KING);
-                    i++;
-                    j++;
-                    break;
-                case 'p':
-                    parsed[i] = new Piece(pc: PIECE_COLOR.BLACK, pt: PIECE_TYPE.PAWN);
-                    i++;
-                    j++;
-                    break;
-                case 'R':
-                    parsed[i] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.ROOK);
-                    i++;
-                    j++;
-                    break;
-                case 'N':
-                    parsed[i] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.KNIGHT);
-                    i++;
-                    j++;
-                    break;
-                case 'B':
-                    parsed[i] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.BISHOP);
-                    i++;
-                    j++;
-                    break;
-                case 'Q':
-                    parsed[i] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.QUEEN);
-                    i++;
-                    j++;
-                    break;
-                case 'K':
-                    parsed[i] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.KING);
-                    i++;
-                    j++;
-                    break;
-                case 'P':
-                    parsed[i] = new Piece(pc: PIECE_COLOR.WHITE, pt: PIECE_TYPE.PAWN);
-                    i++;
-                    j++;
-                    break;
-                case '/':
-                    j++;
-                    continue;
-                default:
-                    for (int k = 0; k < e-'0'; k++)
-                    {
-                        parsed[i] = new Piece(pc: PIECE_COLOR.NONE, pt: PIECE_TYPE.NONE);
-                        i++;
-                    }
-                    j++;
-                    break;
-            }
+        return ParseFEN(FEN).Layout;
+    }
+
+    public static FenState ParseFEN(string fen)
+    {
+        if (string.IsNullOrWhiteSpace(fen))
+        {
+            throw new ArgumentException("FEN cannot be empty.", nameof(fen));
         }
-        return parsed;
+
+        var parts = fen.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length is < 1 or > 6)
+        {
+            throw new FormatException("FEN must contain between 1 and 6 fields.");
+        }
+
+        var layout = ParsePiecePlacement(parts[0]);
+        var sideToMove = parts.Length > 1 ? ParseSideToMove(parts[1]) : PIECE_COLOR.WHITE;
+        var castling = parts.Length > 2 ? ParseCastling(parts[2]) : Castling.WhiteKingSide | Castling.WhiteQueenSide | Castling.BlackKingSide | Castling.BlackQueenSide;
+        var enPassant = parts.Length > 3 ? ParseEnPassant(parts[3]) : -1;
+        var halfMoveClock = parts.Length > 4 ? ParseNonNegativeInt(parts[4], "halfmove clock") : 0;
+        var fullMoveNumber = parts.Length > 5 ? ParsePositiveInt(parts[5], "fullmove number") : 1;
+
+        return new FenState(layout, sideToMove, castling, enPassant, halfMoveClock, fullMoveNumber);
+    }
+
+    public static Board ImportBoardFEN(string fen)
+    {
+        var state = ParseFEN(fen);
+        return new Board(state.Layout)
+        {
+            SideToMove = state.SideToMove,
+            CastlingRights = state.CastlingRights,
+            EnPassantSq = state.EnPassantSquare,
+            HalfMoveClock = state.HalfMoveClock,
+            FullMoveNumber = state.FullMoveNumber
+        };
+    }
+
+    public static string ExportFEN(Board board)
+    {
+        var piecePlacement = ExportPiecePlacement(board.Layout);
+        var side = board.SideToMove == PIECE_COLOR.WHITE ? "w" : "b";
+        var castling = ExportCastling(board.CastlingRights);
+        var enPassant = board.EnPassantSq >= 0 ? IndexToSquare(board.EnPassantSq) : "-";
+        return $"{piecePlacement} {side} {castling} {enPassant} {board.HalfMoveClock} {board.FullMoveNumber}";
     }
 
     /// <summary>
@@ -131,6 +105,245 @@ public static class Format
             Console.Write($"{board[i].PC,5}_{board[i].PT,6}, ");
         }
         Console.WriteLine();
+    }
+
+    private static Piece[] ParsePiecePlacement(string placement)
+    {
+        var parsed = new Piece[64];
+        int boardIndex = 0;
+        int rank = 0;
+
+        foreach (var symbol in placement)
+        {
+            if (symbol == '/')
+            {
+                if ((boardIndex & 7) != 0)
+                {
+                    throw new FormatException("Each FEN rank must describe exactly 8 squares.");
+                }
+
+                rank++;
+                continue;
+            }
+
+            if (char.IsDigit(symbol))
+            {
+                int empty = symbol - '0';
+                if (empty is < 1 or > 8)
+                {
+                    throw new FormatException("FEN empty-square count must be between 1 and 8.");
+                }
+
+                for (int k = 0; k < empty; k++)
+                {
+                    if (boardIndex >= 64)
+                    {
+                        throw new FormatException("FEN piece placement has too many squares.");
+                    }
+
+                    parsed[boardIndex++] = Piece.Empty;
+                }
+                continue;
+            }
+
+            if (boardIndex >= 64)
+            {
+                throw new FormatException("FEN piece placement has too many squares.");
+            }
+
+            parsed[boardIndex++] = ParsePiece(symbol);
+        }
+
+        if (rank != 7 || boardIndex != 64)
+        {
+            throw new FormatException("FEN piece placement must contain exactly 8 ranks and 64 squares.");
+        }
+
+        return parsed;
+    }
+
+    private static Piece ParsePiece(char symbol)
+    {
+        return symbol switch
+        {
+            'r' => new Piece(PIECE_COLOR.BLACK, PIECE_TYPE.ROOK),
+            'n' => new Piece(PIECE_COLOR.BLACK, PIECE_TYPE.KNIGHT),
+            'b' => new Piece(PIECE_COLOR.BLACK, PIECE_TYPE.BISHOP),
+            'q' => new Piece(PIECE_COLOR.BLACK, PIECE_TYPE.QUEEN),
+            'k' => new Piece(PIECE_COLOR.BLACK, PIECE_TYPE.KING),
+            'p' => new Piece(PIECE_COLOR.BLACK, PIECE_TYPE.PAWN),
+            'R' => new Piece(PIECE_COLOR.WHITE, PIECE_TYPE.ROOK),
+            'N' => new Piece(PIECE_COLOR.WHITE, PIECE_TYPE.KNIGHT),
+            'B' => new Piece(PIECE_COLOR.WHITE, PIECE_TYPE.BISHOP),
+            'Q' => new Piece(PIECE_COLOR.WHITE, PIECE_TYPE.QUEEN),
+            'K' => new Piece(PIECE_COLOR.WHITE, PIECE_TYPE.KING),
+            'P' => new Piece(PIECE_COLOR.WHITE, PIECE_TYPE.PAWN),
+            _ => throw new FormatException($"Invalid FEN piece symbol '{symbol}'.")
+        };
+    }
+
+    private static PIECE_COLOR ParseSideToMove(string side)
+    {
+        return side switch
+        {
+            "w" => PIECE_COLOR.WHITE,
+            "b" => PIECE_COLOR.BLACK,
+            _ => throw new FormatException("FEN side-to-move must be 'w' or 'b'.")
+        };
+    }
+
+    private static Castling ParseCastling(string castling)
+    {
+        if (castling == "-")
+        {
+            return Castling.None;
+        }
+
+        Castling rights = Castling.None;
+        foreach (var c in castling)
+        {
+            rights |= c switch
+            {
+                'K' => Castling.WhiteKingSide,
+                'Q' => Castling.WhiteQueenSide,
+                'k' => Castling.BlackKingSide,
+                'q' => Castling.BlackQueenSide,
+                _ => throw new FormatException($"Invalid castling token '{c}' in FEN.")
+            };
+        }
+
+        return rights;
+    }
+
+    private static int ParseEnPassant(string enPassant)
+    {
+        if (enPassant == "-")
+        {
+            return -1;
+        }
+
+        if (enPassant.Length != 2)
+        {
+            throw new FormatException("FEN en passant square must be '-' or a square like e3.");
+        }
+
+        return SquareToIndex(enPassant[0], enPassant[1]);
+    }
+
+    private static int ParseNonNegativeInt(string value, string fieldName)
+    {
+        if (!int.TryParse(value, out var result) || result < 0)
+        {
+            throw new FormatException($"FEN {fieldName} must be a non-negative integer.");
+        }
+
+        return result;
+    }
+
+    private static int ParsePositiveInt(string value, string fieldName)
+    {
+        if (!int.TryParse(value, out var result) || result < 1)
+        {
+            throw new FormatException($"FEN {fieldName} must be a positive integer.");
+        }
+
+        return result;
+    }
+
+    private static string ExportPiecePlacement(Piece[] layout)
+    {
+        var builder = new System.Text.StringBuilder(72);
+
+        for (int rank = 0; rank < 8; rank++)
+        {
+            int emptyCount = 0;
+
+            for (int file = 0; file < 8; file++)
+            {
+                int boardIndex = (rank * 8) + file;
+                var piece = layout[boardIndex];
+
+                if (piece.PC == PIECE_COLOR.NONE || piece.PT == PIECE_TYPE.NONE)
+                {
+                    emptyCount++;
+                    continue;
+                }
+
+                if (emptyCount > 0)
+                {
+                    builder.Append((char)('0' + emptyCount));
+                    emptyCount = 0;
+                }
+
+                builder.Append(PieceToFenChar(piece));
+            }
+
+            if (emptyCount > 0)
+            {
+                builder.Append((char)('0' + emptyCount));
+            }
+
+            if (rank < 7)
+            {
+                builder.Append('/');
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    private static char PieceToFenChar(Piece piece)
+    {
+        var symbol = piece.PT switch
+        {
+            PIECE_TYPE.PAWN => 'p',
+            PIECE_TYPE.KNIGHT => 'n',
+            PIECE_TYPE.BISHOP => 'b',
+            PIECE_TYPE.ROOK => 'r',
+            PIECE_TYPE.QUEEN => 'q',
+            PIECE_TYPE.KING => 'k',
+            _ => throw new FormatException("Cannot export an unknown piece type to FEN.")
+        };
+
+        return piece.PC == PIECE_COLOR.WHITE ? char.ToUpperInvariant(symbol) : symbol;
+    }
+
+    private static string ExportCastling(Castling rights)
+    {
+        if (rights == Castling.None)
+        {
+            return "-";
+        }
+
+        Span<char> buffer = stackalloc char[4];
+        int idx = 0;
+        if ((rights & Castling.WhiteKingSide) != 0) buffer[idx++] = 'K';
+        if ((rights & Castling.WhiteQueenSide) != 0) buffer[idx++] = 'Q';
+        if ((rights & Castling.BlackKingSide) != 0) buffer[idx++] = 'k';
+        if ((rights & Castling.BlackQueenSide) != 0) buffer[idx++] = 'q';
+        return new string(buffer[..idx]);
+    }
+
+    private static int SquareToIndex(char file, char rank)
+    {
+        if (file is < 'a' or > 'h' || rank is < '1' or > '8')
+        {
+            throw new FormatException($"Invalid square '{file}{rank}' in FEN.");
+        }
+
+        return ('8' - rank) * 8 + (file - 'a');
+    }
+
+    private static string IndexToSquare(int square)
+    {
+        if (square is < 0 or > 63)
+        {
+            throw new ArgumentOutOfRangeException(nameof(square), "Square index must be between 0 and 63.");
+        }
+
+        var file = (char)('a' + (square % 8));
+        var rank = (char)('8' - (square / 8));
+        return $"{file}{rank}";
     }
 }
 

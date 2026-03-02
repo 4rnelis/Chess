@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chess Online</title>
+    <link rel="stylesheet" href="app.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="app__header">
+        <h1>Chess Online</h1>
+        <div class="status" id="status">Not connected</div>
+      </header>
+
+      <section class="panel">
+        <div class="panel__row">
+          <button id="connectButton">Connect</button>
+          <button id="queueButton" disabled>Join Queue</button>
+          <button id="refreshButton" disabled>Refresh State</button>
+        </div>
+        <div class="panel__row">
+          <div>Game: <span id="gameId">-</span></div>
+          <div>You: <span id="playerColor">-</span></div>
+          <div>Opponent: <span id="opponentId">-</span></div>
+        </div>
+      </section>
+
+      <section class="board-area">
+        <div class="board" id="board"></div>
+        <div class="sidepanel">
+          <div class="card">
+            <div class="card__title">Move</div>
+            <div class="card__body">
+              <input id="uciInput" type="text" placeholder="e2e4 or e7e8q" />
+              <button id="moveButton" disabled>Send</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card__title">Last Move</div>
+            <div class="card__body" id="lastMove">-</div>
+          </div>
+          <div class="card">
+            <div class="card__title">Side To Move</div>
+            <div class="card__body" id="sideToMove">-</div>
+          </div>
+          <div class="card">
+            <div class="card__title">Castling</div>
+            <div class="card__body" id="castling">-</div>
+          </div>
+          <div class="card">
+            <div class="card__title">En Passant</div>
+            <div class="card__body" id="enPassant">-</div>
+          </div>
+          <div class="card">
+            <div class="card__title">Messages</div>
+            <div class="card__body" id="messages"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/signalr/signalr.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
