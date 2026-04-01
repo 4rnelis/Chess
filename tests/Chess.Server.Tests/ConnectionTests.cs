@@ -95,7 +95,7 @@ public sealed class ConnectionTests : IClassFixture<WebApplicationFactory<Progra
 
     private static async Task<T> WaitFor<T>(Task<T> task, TimeSpan timeout)
     {
-        // Wrap waits with an explicit timeout to avoid hanging tests.
+        // Wrap with a timeout to prevent hanging.
         using var cts = new CancellationTokenSource(timeout);
         var delayTask = Task.Delay(Timeout.InfiniteTimeSpan, cts.Token);
         var completed = await Task.WhenAny(task, delayTask);

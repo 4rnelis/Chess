@@ -1,0 +1,32 @@
+@host = https://localhost:7143
+@name = testuser
+@password = TestPassword123!
+
+### Register
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+    "name": "{{name}}",
+    "password": "{{password}}"
+}
+
+### Login
+# @name login
+
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+"name": "{{name}}",
+"password": "{{password}}"
+}
+
+### Current user
+GET {{host}}/api/auth/me
+
+### Logout
+POST {{host}}/api/auth/logout
+
+### After logout
+GET {{host}}/api/auth/me

@@ -31,6 +31,7 @@ public sealed class GameManager
                 }
 
                 var gameId = Guid.NewGuid().ToString("N");
+                // Template FEN for starting position. In the future, should be customizeable for different variants of the game.
                 var board = Format.ImportBoardFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
                 var game = new GameSession
